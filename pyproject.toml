@@ -1,0 +1,12 @@
+[project]
+name = "pyqt6-beispiel"
+version = "0.1.0"
+description = "Modulare PyQt6-Anwendung mit Sprachwahl und Flickable-UI"
+authors = ["Dein Name <email@example.com>"]
+license = "MIT"
+
+[tool.setuptools]
+packages = ["."]
+
+[project.optional-dependencies]
+gui = ["PyQt6"]
