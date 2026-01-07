@@ -2,7 +2,7 @@ import sys
 import json
 import os
 from PyQt6.QtWidgets import (
-	QApplication, QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QScrollArea
+	QApplication, QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QScrollArea, QSizePolicy
 )
 from PyQt6.QtCore import Qt
 import importlib
@@ -21,20 +21,44 @@ def main():
 
 	app = QApplication(sys.argv)
 	window = QWidget()
-	window.setWindowTitle('PyQt6 Row Layout App')
+	window.setWindowTitle('Toolbox')
 	window.setStyleSheet('background-color: white;')
 	main_layout = QHBoxLayout()
 
-	# Flickable Bereich (QScrollArea) mit 4 Buttons
+	# Flickable Bereich (QScrollArea) mit 2 Buttons
 	button_widget = QWidget()
+	button_widget.setMaximumWidth(150)
+	button_widget.setFixedWidth(150)
 	button_layout = QVBoxLayout()
+	button_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+	button_layout.setSpacing(2)
 	button_refs = []
-	for i in range(1, 5):
-		button = QPushButton(f'Button {i}')
-		button_layout.addWidget(button)
-		button_refs.append(button)
+	# Hauptmenü-Button oben
+	mainmenu_btn = QPushButton('Hauptmenü')
+	mainmenu_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+	mainmenu_btn.setStyleSheet('font-size: 12px;')
+	button_layout.addWidget(mainmenu_btn)
+	def show_mainmenu():
+		clear_content()
+		label = QLabel('Bitte wähle einen Button links!')
+		label.setStyleSheet('color: white; font-size: 18px;')
+		content_layout.addWidget(label)
+	mainmenu_btn.clicked.connect(lambda: show_mainmenu())
+	# Nur Button 1 und 2
+	button = QPushButton('config_tool')
+	button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+	button.setStyleSheet('font-size: 12px;')
+	button_layout.addWidget(button)
+	button_refs.append(button)
+	button2 = QPushButton('netzwerkscanner')
+	button2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+	button2.setStyleSheet('font-size: 12px;')
+	button_layout.addWidget(button2)
+	button_refs.append(button2)
 	button_layout.addStretch()
-	button5 = QPushButton('Button 5')
+	button5 = QPushButton('Einstellungen')
+	button5.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+	button5.setStyleSheet('font-size: 12px;')
 	button_layout.addWidget(button5)
 	button_widget.setLayout(button_layout)
 	button_widget.setStyleSheet('background-color: black;')
@@ -42,9 +66,10 @@ def main():
 	scroll_area = QScrollArea()
 	scroll_area.setWidgetResizable(True)
 	scroll_area.setWidget(button_widget)
-	scroll_area.setMinimumWidth(80)
+	scroll_area.setMinimumWidth(150)
 	scroll_area.setMaximumWidth(150)
-	scroll_area.setFixedWidth(120)
+	scroll_area.setFixedWidth(150)
+	scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
 	# Nur Flickable-Bereich (ohne Ein-/Ausklapp-Button)
 	flickable_widget = QWidget()
@@ -69,26 +94,26 @@ def main():
 
 	def update_content(idx):
 		clear_content()
-		# Mapping Button-Index zu Modulnamen
+		# Mapping Button-Index zu Modulnamen (neue Struktur)
 		module_map = {
-			0: 'ui_button1',
-			1: 'ui_button2',
-			2: 'ui_button3',
-			3: 'ui_button4',
-			4: 'ui_settings',  # Button 5 zeigt das Einstellungsmenü
+			0: 'config_tool.ui_config_tool',
+			1: 'netzwerkscanner.ui_netzwerkscanner',
+			2: 'einstellung.ui_einstellung',  # Button 5 zeigt das Einstellungsmenü
 		}
 		module_name = module_map.get(idx)
 		if module_name:
 			ui_module = importlib.import_module(module_name)
 			# Für das Einstellungsmenü: Callback für Sprachwechsel übergeben
-			if module_name == 'ui_settings':
+			if module_name == 'einstellung.ui_einstellung':
 				def on_language_change(new_lang):
 					translation.set_language(new_lang)
 					# Speichere Spracheinstellung
 					with open(settings_path, 'w') as f:
 						json.dump({'language': new_lang}, f)
-					# UI neu laden
-					update_content(4)
+					button_refs[0].setText('config_tool')
+					button_refs[1].setText('netzwerkscanner')
+					button5.setText('Einstellungen')
+					update_content(2)
 				widget = ui_module.get_widget(translation, on_language_change)
 			else:
 				widget = ui_module.get_widget(translation)
@@ -105,12 +130,21 @@ def main():
 
 	for idx, btn in enumerate(button_refs):
 		btn.clicked.connect(lambda checked, i=idx: update_content(i))
-	button5.clicked.connect(lambda checked: update_content(4))
+	button5.clicked.connect(lambda checked: update_content(2))
 
 	main_layout.addWidget(flickable_widget)
 	main_layout.addWidget(content_widget, stretch=1)
 	window.setLayout(main_layout)
-	window.resize(400, 150)
+	window.resize(1200, 800)
+	window.setMinimumSize(1200, 800)
+
+	# QSS laden
+	qss_path = os.path.join(os.path.dirname(__file__), 'main.qss')
+	if os.path.exists(qss_path):
+		with open(qss_path, 'r') as f:
+			window.setStyleSheet(f.read())
+			flickable_widget.setStyleSheet(f.read())
+
 	window.show()
 	sys.exit(app.exec())
 

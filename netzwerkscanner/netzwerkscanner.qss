@@ -1,0 +1,41 @@
+/* QSS für netzwerkscanner */
+
+QWidget {
+    background-color: #23272e;
+    color: #f8f8f2;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 15px;
+}
+
+QPushButton {
+    background-color: #44475a;
+    color: #f8f8f2;
+    border: 1px solid #6272a4;
+    border-radius: 6px;
+    padding: 8px 16px;
+    margin: 4px 0;
+}
+QPushButton:hover {
+    background-color: #6272a4;
+}
+QPushButton:pressed {
+    background-color: #282a36;
+}
+
+QListWidget {
+    background: #282a36;
+    color: #f8f8f2;
+    border: 1px solid #44475a;
+    border-radius: 6px;
+}
+
+QLabel {
+    color: #f8f8f2;
+}
+
+QProgressDialog {
+    background: #23272e;
+    color: #f8f8f2;
+    border: 1px solid #6272a4;
+    border-radius: 8px;
+}
