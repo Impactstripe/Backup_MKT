@@ -28,3 +28,22 @@ QPushButton:pressed {
 QLabel {
     color: #f8f8f2;
 }
+
+/* App-specific overrides */
+QWidget#appWindow {
+    background-color: white;
+    color: #000000;
+}
+
+QWidget#sidePanel {
+    background-color: rgba(0,0,0,153);
+}
+
+QWidget#contentArea {
+    background-color: rgba(0,0,0,153);
+}
+
+/* Ensure labels inside dark areas are visible */
+QWidget#sidePanel QLabel, QWidget#contentArea QLabel {
+    color: white;
+}
