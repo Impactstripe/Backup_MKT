@@ -1,10 +1,109 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
-from . import logic_einstellung
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QComboBox
 import os
+import json
+from . import logic_einstellung
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QObject
+from main_funktions import get_language
 
-def get_widget(translation, *args, **kwargs):
+
+def _read_names():
+    path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'names.json'))
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _write_names(data):
+    path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'names.json'))
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+    except Exception:
+        pass
+
+
+def get_widget(translation=None, *args, **kwargs):
     widget = QWidget()
     layout = QVBoxLayout(widget)
-    label = QLabel(logic_einstellung.get_text())
-    layout.addWidget(label)
+
+    title_lbl = QLabel(logic_einstellung.get_text())
+    layout.addWidget(title_lbl)
+
+    names = _read_names()
+    lang_order = names.get('language_order', ['de', 'en', 'ru'])
+    default_name = names.get('default_language', lang_order[0] if lang_order else 'de')
+
+    combo = QComboBox()
+    label_map = {'de': 'Deutsch', 'en': 'English', 'ru': 'Русский'}
+    for code in lang_order:
+        combo.addItem(label_map.get(code, code), code)
+
+    # determine currently selected language from persisted settings
+    try:
+        current = get_language(default=default_name)
+    except Exception:
+        current = default_name
+    try:
+        idx = lang_order.index(current)
+    except Exception:
+        idx = 0
+    combo.setCurrentIndex(idx)
+
+    def on_change(i):
+        code = combo.itemData(i)
+        # persist language in settings
+        try:
+            from main_funktions import set_language
+            set_language(code)
+        except Exception:
+            pass
+        # update main window titles and registered widgets via app_registry
+        try:
+            import app_registry
+            n = _read_names()
+            wt = n.get('window_title')
+            if isinstance(wt, dict):
+                new_title = wt.get(code) or next(iter(wt.values()))
+            else:
+                new_title = wt or 'Toolbox'
+            # set title on all top-level windows
+            app = QApplication.instance()
+            if app:
+                for w in app.topLevelWidgets():
+                    try:
+                        w.setWindowTitle(new_title)
+                    except Exception:
+                        pass
+            # update registered widgets
+            labels = n.get('labels', {})
+            mapping = {
+                'mainmenu_btn': 'menu_main',
+                'settings_btn': 'settings',
+                'prompt_label': 'choose_prompt'
+            }
+            for obj_name, lbl_key in mapping.items():
+                widget = app_registry.get_widget(obj_name)
+                if widget is None:
+                    continue
+                v = labels.get(lbl_key)
+                if isinstance(v, dict):
+                    text = v.get(code) or next(iter(v.values()))
+                else:
+                    text = v or lbl_key
+                try:
+                    if hasattr(widget, 'setText'):
+                        widget.setText(text)
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    combo.currentIndexChanged.connect(on_change)
+    layout.addWidget(combo)
+
     return widget

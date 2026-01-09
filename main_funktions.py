@@ -1,5 +1,33 @@
 import importlib
+import json
+import os
 from PyQt6.QtWidgets import QLabel
+
+# Settings persistence moved here (was in settings.py)
+_settings_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+
+def _settings_read():
+    try:
+        with open(_settings_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _settings_write(data):
+    try:
+        with open(_settings_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+    except Exception:
+        pass
+
+def get_language(default='de'):
+    d = _settings_read()
+    return d.get('language', default)
+
+def set_language(lang_code):
+    d = _settings_read()
+    d['language'] = lang_code
+    _settings_write(d)
 
 def clear_content(content_layout):
     while content_layout.count():
@@ -9,12 +37,27 @@ def clear_content(content_layout):
             widget.deleteLater()
 
 
-def update_content(idx, content_layout, settings_path=None, button_refs=None, button5=None):
+def update_content(idx, content_layout, *args, **kwargs):
     """
-    Load UI module by index and add its widget to the content layout.
-    Language/translation support removed; signature keeps optional params
-    for compatibility with existing callers.
+    Backwards-compatible loader for UI modules.
+
+    Accepts legacy signature with extra positional args (translation, settings_path,
+    button_refs, button5) as well as the simplified signature used now.
     """
+    # Normalize parameters for backward compatibility
+    # possible legacy args order: (translation, settings_path, button_refs, button5)
+    settings_path = kwargs.get('settings_path', None)
+    button_refs = kwargs.get('button_refs', None)
+    button5 = kwargs.get('button5', None)
+    if len(args) >= 1 and settings_path is None:
+        # args[0] might be translation in legacy calls; shift accordingly
+        if len(args) >= 2:
+            settings_path = args[1]
+        if len(args) >= 3:
+            button_refs = args[2]
+        if len(args) >= 4:
+            button5 = args[3]
+
     clear_content(content_layout)
     # Mapping Button-Index to module names
     module_map = {
