@@ -36,29 +36,29 @@ def main():
 	# Hauptmenü-Button oben
 	mainmenu_btn = QPushButton('Hauptmenü')
 	mainmenu_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-	mainmenu_btn.setStyleSheet('font-size: 12px;')
+	mainmenu_btn.setStyleSheet('')
 	button_layout.addWidget(mainmenu_btn)
 	def show_mainmenu():
 		clear_content()
 		label = QLabel('Bitte wähle einen Button links!')
-		label.setStyleSheet('color: white; font-size: 18px;')
+		label.setStyleSheet('color: white;')
 		content_layout.addWidget(label)
 	mainmenu_btn.clicked.connect(lambda: show_mainmenu())
 	# Nur Button 1 und 2
 	button = QPushButton('config_tool')
 	button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-	button.setStyleSheet('font-size: 12px;')
+	button.setStyleSheet('')
 	button_layout.addWidget(button)
 	button_refs.append(button)
-	button2 = QPushButton('netzwerkscanner')
+	button2 = QPushButton('networkscanner')
 	button2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-	button2.setStyleSheet('font-size: 12px;')
+	button2.setStyleSheet('')
 	button_layout.addWidget(button2)
 	button_refs.append(button2)
 	button_layout.addStretch()
 	button5 = QPushButton('Einstellungen')
 	button5.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-	button5.setStyleSheet('font-size: 12px;')
+	button5.setStyleSheet('')
 	button_layout.addWidget(button5)
 	button_widget.setLayout(button_layout)
 	button_widget.setStyleSheet('background-color: black;')
@@ -97,7 +97,7 @@ def main():
 		# Mapping Button-Index zu Modulnamen (neue Struktur)
 		module_map = {
 			0: 'config_tool.ui_config_tool',
-			1: 'netzwerkscanner.ui_netzwerkscanner',
+			1: 'networkscanner.ui_netzwerkscanner',
 			2: 'einstellung.ui_einstellung',  # Button 5 zeigt das Einstellungsmenü
 		}
 		module_name = module_map.get(idx)
@@ -111,7 +111,7 @@ def main():
 					with open(settings_path, 'w') as f:
 						json.dump({'language': new_lang}, f)
 					button_refs[0].setText('config_tool')
-					button_refs[1].setText('netzwerkscanner')
+					button_refs[1].setText('networkscanner')
 					button5.setText('Einstellungen')
 					update_content(2)
 				widget = ui_module.get_widget(translation, on_language_change)
@@ -120,12 +120,12 @@ def main():
 			content_layout.addWidget(widget)
 		else:
 			label = QLabel('Kein UI-Modul gefunden!')
-			label.setStyleSheet('color: white; font-size: 18px;')
+			label.setStyleSheet('color: white;')
 			content_layout.addWidget(label)
 
 	# Initialer Inhalt
 	label = QLabel('Bitte wähle einen Button links!')
-	label.setStyleSheet('color: white; font-size: 18px;')
+	label.setStyleSheet('color: white;')
 	content_layout.addWidget(label)
 
 	for idx, btn in enumerate(button_refs):

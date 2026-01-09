@@ -11,6 +11,6 @@ def get_widget(translation, *args, **kwargs):
         with open(qss_path, 'r') as f:
             widget.setStyleSheet(f.read())
     label = QLabel(logic_einstellung.get_text())
-    label.setStyleSheet('color: white; font-size: 18px;')
+    label.setStyleSheet('color: white;')
     layout.addWidget(label)
     return widget

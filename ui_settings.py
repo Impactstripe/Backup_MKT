@@ -8,7 +8,7 @@ def get_widget(translation, on_language_change=None, *args, **kwargs):
     widget = QWidget()
     layout = QVBoxLayout(widget)
     label = QLabel(t['settings'])
-    label.setStyleSheet('color: white; font-size: 20px; font-weight: bold;')
+    label.setStyleSheet('color: white; font-weight: bold;')
     layout.addWidget(label)
 
     # Sprachwahl automatisch aus lang-Dateien
