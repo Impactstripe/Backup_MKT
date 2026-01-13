@@ -1,0 +1,43 @@
+{
+    "window_title": {
+        "de": "Toolbox",
+        "en": "Toolbox",
+        "ru": "Панель инструментов"
+    },
+    "menu_punkte": {
+        "menu_main": { "de": "Hauptmenü", "en": "Main Menu", "ru": "Главное меню" },
+        "settings": { "de": "Einstellungen", "en": "Settings", "ru": "Настройки" },
+        "modbus_template": { "de": "Modbus Konfigurator", "en": "Modbus Configurator", "ru": "Modbus шаблон" }
+    },
+    "choose_prompt": {
+        "de": "Bitte wähle einen Button links!",
+        "en": "Please choose a button on the left!",
+        "ru": "Пожалуйста, выберите кнопку слева!"
+    },
+    
+    "modbus_template_page": {
+        "nav_file": { "de": "Datei", "en": "File", "ru": "Файл" },
+        "nav_import": { "de": "Import", "en": "Import", "ru": "Импорт" },
+        "nav_export": { "de": "Export", "en": "Export", "ru": "Экспорт" },
+        "toolbar_opt1": { "de": "Option 1", "en": "Option 1", "ru": "Опция 1" },
+        "toolbar_opt2": { "de": "Option 2", "en": "Option 2", "ru": "Опция 2" },
+        "input_placeholder": { "de": "Eingabetext...", "en": "Input...", "ru": "Текст..." },
+        "file_new_table": { "de": "Neue Tabelle", "en": "New Table", "ru": "Новая таблица" },
+        "file_load_from_template": { "de": "Aus Template laden", "en": "Load From Template", "ru": "Загрузить из шаблона" },
+        "file_save": { "de": "Speichern", "en": "Save", "ru": "Сохранить" },
+        "file_saved_tables": { "de": "Gespeicherte Tabelle(n)", "en": "Saved Table(s)", "ru": "Сохранённые таблицы" },
+        "file_delete_saved": { "de": "Gespeicherte Tabelle löschen", "en": "Delete Saved Table", "ru": "Удалить сохранённую таблицу" },
+        "import_csv": { "de": "Importieren (.csv)", "en": "Import (.csv)", "ru": "Импорт (.csv)" },
+        "import_json": { "de": "Importieren (.json)", "en": "Import (.json)", "ru": "Импорт (.json)" },
+        "export_csv": { "de": "Exportieren (.csv)", "en": "Export (.csv)", "ru": "Экспорт (.csv)" },
+        "export_json": { "de": "Exportieren (.json)", "en": "Export (.json)", "ru": "Экспорт (.json)" }
+        },
+        "column_names": {
+            "col_name": { "de": "Name", "en": "Name", "ru": "Имя" },
+            "col_address": { "de": "Adresse", "en": "Address", "ru": "Адрес" },
+            "col_type": { "de": "Typ", "en": "Type", "ru": "Тип" },
+            "col_unit": { "de": "Einheit", "en": "Unit", "ru": "Ед." },
+            "col_scale": { "de": "Skalierung", "en": "Scale", "ru": "Масштаб" },
+            "col_comment": { "de": "Kommentar", "en": "Comment", "ru": "Комментарий" }
+        }
+}

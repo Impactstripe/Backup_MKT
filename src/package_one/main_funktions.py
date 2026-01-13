@@ -4,7 +4,7 @@ import os
 from PyQt6.QtWidgets import QLabel
 
 # Settings persistence moved here (was in settings.py)
-_settings_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+_settings_path = os.path.join(os.path.dirname(__file__), 'Data', 'settings.json')
 
 def _settings_read():
     try:
@@ -40,7 +40,7 @@ def get_available_languages():
     3. Ensure settings default (if set) is first
     Returns a list of language codes (non-empty).
     """
-    names_path = os.path.join(os.path.dirname(__file__), 'names.json')
+    names_path = os.path.join(os.path.dirname(__file__), 'Data', 'names.json')
     try:
         with open(names_path, 'r', encoding='utf-8') as f:
             names = json.load(f)
@@ -54,11 +54,24 @@ def get_available_languages():
             if k not in codes:
                 codes.append(k)
 
-    # Collect codes from other top-level dicts (e.g. labels moved to root)
+    # Collect codes from other top-level dicts that actually look like language maps.
+    # Skip grouped structures like `menu_punkte` whose keys are label identifiers.
+    def _looks_like_lang_map(d):
+        if not isinstance(d, dict) or not d:
+            return False
+        # language maps map short language codes to strings, e.g. { 'de': 'Text', 'en': 'Text' }
+        # Accept keys of length 2 or 3 and string values.
+        for k, v in d.items():
+            if not (isinstance(k, str) and 1 <= len(k) <= 3):
+                return False
+            if not isinstance(v, str):
+                return False
+        return True
+
     for key, val in names.items():
         if key == 'window_title':
             continue
-        if isinstance(val, dict):
+        if isinstance(val, dict) and _looks_like_lang_map(val):
             for k in val.keys():
                 if k not in codes:
                     codes.append(k)
@@ -110,6 +123,7 @@ def update_content(idx, content_layout, *args, **kwargs):
     # Mapping Button-Index to module names (module name relative to package)
     module_map = {
         0: 'package_one.extensions.einstellung.ui_einstellung',
+        1: 'package_one.extensions.modbus_template_konfigurator.ui_modbus_template',
     }
     module_name = module_map.get(idx)
     if module_name:

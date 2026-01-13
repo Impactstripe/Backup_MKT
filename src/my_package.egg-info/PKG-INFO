@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: my_package
+Version: 0.0.1rc1
+Summary: A small example package
+Author-email: Arican <you@example.com>
+License: MIT
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: PyQt6==6.10.2
+Requires-Dist: PyQt6-Qt6==6.10.1
+Requires-Dist: PyQt6_sip==13.10.3
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"

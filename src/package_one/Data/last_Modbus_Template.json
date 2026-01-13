@@ -1,0 +1,22 @@
+{
+  "templates": [
+    {
+      "Name": "Item 1",
+      "Address": "0x00",
+      "Type": "uint16",
+      "Unit": "",
+      "Scale": "1",
+      "Comment": "test "
+    },
+    {
+      "Name": "Item 15",
+      "Address": "0x00",
+      "Type": "uint16",
+      "Unit": "",
+      "Scale": "1",
+      "Comment": ""
+    }
+  ],
+  "last_used": null,
+  "input_text": ""
+}

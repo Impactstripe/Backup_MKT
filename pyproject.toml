@@ -5,14 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "my_package"
 version = "0.0.1-rc1"
-authors = [
-  { name="" },
-]
 description = "A small example package"
 readme = "README.md"
 requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+  { name = "Arican", email = "you@example.com" },
+]
 dependencies = [
-    "pytest",
+    "PyQt6==6.10.2",
+    "PyQt6-Qt6==6.10.1",
+    "PyQt6_sip==13.10.3",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -20,5 +23,16 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
 [project.scripts]
 my-script = "package_one.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

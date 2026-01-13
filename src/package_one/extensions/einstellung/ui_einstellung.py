@@ -8,7 +8,7 @@ from package_one.main_funktions import get_language, get_settings_default_langua
 
 
 def _read_names():
-    path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'names.json'))
+    path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'names.json'))
     if not os.path.exists(path):
         return {}
     try:
@@ -19,7 +19,7 @@ def _read_names():
 
 
 def _write_names(data):
-    path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'names.json'))
+    path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'names.json'))
     try:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
@@ -84,11 +84,13 @@ def get_widget(translation=None, *args, **kwargs):
                         w.setWindowTitle(new_title)
                     except Exception:
                         pass
-            # update registered widgets (labels may be at root or under "labels")
+            # update registered widgets (labels may be at root, under "labels", or under "menu_punkte")
             labels_root = n
             labels_group = n.get('labels', {})
+            labels_menu = n.get('menu_punkte', {})
             mapping = {
                 'mainmenu_btn': 'menu_main',
+                'modbus_btn': 'modbus_template',
                 'settings_btn': 'settings',
                 'prompt_label': 'choose_prompt'
             }
@@ -101,6 +103,8 @@ def get_widget(translation=None, *args, **kwargs):
                 v = labels_root.get(lbl_key)
                 if v is None:
                     v = labels_group.get(lbl_key)
+                if v is None:
+                    v = labels_menu.get(lbl_key)
                 if isinstance(v, dict):
                     text = v.get(code) or next(iter(v.values()))
                 else:

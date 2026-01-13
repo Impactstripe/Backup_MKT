@@ -8,8 +8,8 @@ from PyQt6.QtCore import Qt
 from .main_funktions import clear_content, update_content, get_language, get_settings_default_language, get_available_languages
 
 def main():
-	# settings path retained for potential future use
-	settings_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+	# settings path retained for potential future use (moved to Data)
+	settings_path = os.path.join(os.path.dirname(__file__), 'Data', 'settings.json')
 
 	# Ensure project root is on sys.path so packages at repo root (e.g. `extensions`) are importable
 	project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -24,7 +24,7 @@ def main():
 	# preload names.json so labels are available before widgets
 	_names = {}
 	try:
-		with open(os.path.join(os.path.dirname(__file__), 'names.json'), 'r', encoding='utf-8') as f:
+		with open(os.path.join(os.path.dirname(__file__), 'Data', 'names.json'), 'r', encoding='utf-8') as f:
 			_names = json.load(f)
 	except Exception:
 		_names = {}
@@ -57,7 +57,7 @@ def main():
 	button_widget.setMaximumWidth(150)
 	button_widget.setFixedWidth(150)
 	button_layout = QVBoxLayout()
-	button_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+	button_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 	button_layout.setSpacing(2)
 	button_refs = []
 	# Hauptmenü-Button oben (label from names.json)
@@ -71,6 +71,9 @@ def main():
 		v = _names.get(key)
 		if v is None:
 			v = _names.get('labels', {}).get(key)
+		if v is None:
+			# also support menu labels grouped under 'menu_punkte'
+			v = _names.get('menu_punkte', {}).get(key)
 		if isinstance(v, dict):
 			return v.get(lang_local) or next(iter(v.values()))
 		return v or key
@@ -87,6 +90,12 @@ def main():
 		# update reference to current prompt label for other modules
 		top_widgets['prompt_label'] = prompt
 	mainmenu_btn.clicked.connect(lambda: show_mainmenu())
+
+	# Modbus Extension Button
+	modbus_btn = QPushButton(_lbl('modbus_template'))
+	modbus_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+	modbus_btn.setObjectName('modbus_btn')
+	button_layout.addWidget(modbus_btn)
 	# Nur Einstellungen-Button
 	button_layout.addStretch()
 	button5 = QPushButton(_lbl('settings'))
@@ -121,20 +130,28 @@ def main():
 
 	# use clear_content and update_content from main_funktions
 
-	# Initialer Inhalt
-	label = QLabel(_lbl('choose_prompt'))
-	label.setObjectName('prompt_label')
-	content_layout.addWidget(label)
+	# Initialer Inhalt: zeige das Hauptmenü beim Start
 	# central mapping of important top-level widgets passed to extensions
 	top_widgets = {
 		'mainmenu_btn': mainmenu_btn,
+		'modbus_btn': modbus_btn,
 		'settings_btn': button5,
-		'prompt_label': label,
+		# placeholder for dynamic prompt label (will be set later)
+		'prompt_label': None,
 	}
+
+	# show main menu by default
+	show_mainmenu()
 
 	for idx, btn in enumerate(button_refs):
 		btn.clicked.connect(lambda checked, i=idx: update_content(i, content_layout, None, settings_path, button_refs, button5, top_widgets=top_widgets))
 	button5.clicked.connect(lambda checked: update_content(0, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
+	# connect Modbus button to the new extension (index 1)
+	try:
+		modbus_btn.clicked.connect(lambda checked: update_content(1, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
+	except NameError:
+		# modbus_btn may not exist in older checkouts
+		pass
 
 	main_layout.addWidget(flickable_widget)
 	main_layout.addWidget(content_widget, stretch=1)
