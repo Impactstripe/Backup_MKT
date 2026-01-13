@@ -1,12 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "pyqt6-beispiel"
-version = "0.1.0"
-description = "Modulare PyQt6-Anwendung mit Sprachwahl und Flickable-UI"
-authors = ["Dein Name <email@example.com>"]
-license = "MIT"
+name = "my_package"
+version = "0.0.1-rc1"
+authors = [
+  { name="" },
+]
+description = "A small example package"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pytest",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
-[tool.setuptools]
-packages = ["."]
-
-[project.optional-dependencies]
-gui = ["PyQt6"]
+[project.scripts]
+my-script = "package_one.main:main"
