@@ -9,7 +9,23 @@
       "Comment": "test "
     },
     {
-      "Name": "Item 15",
+      "Name": "Item 9",
+      "Address": "0x00",
+      "Type": "uint16",
+      "Unit": "",
+      "Scale": "1",
+      "Comment": ""
+    },
+    {
+      "Name": "Item 3",
+      "Address": "0x00",
+      "Type": "uint16",
+      "Unit": "",
+      "Scale": "1",
+      "Comment": ""
+    },
+    {
+      "Name": "Item 4",
       "Address": "0x00",
       "Type": "uint16",
       "Unit": "",
@@ -18,5 +34,5 @@
     }
   ],
   "last_used": null,
-  "input_text": ""
+  "input_text": "Test 2"
 }

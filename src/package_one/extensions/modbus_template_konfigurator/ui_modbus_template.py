@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 import json
 import os
 import csv
+import datetime
 from PyQt6.QtCore import Qt
 from .logic_modbus_template import ModbusTemplateManager
 from package_one.main_funktions import get_language, get_settings_default_language, get_available_languages
@@ -410,24 +411,64 @@ def get_widget(translation=None, *args, **kwargs):
                 QMessageBox.warning(widget, _lbl('export_csv'), 'Fehler')
 
         def _export_json():
-            fn, _ = QFileDialog.getSaveFileName(widget, _lbl('export_json'), os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'last_Modbus_Template.json'), 'JSON Files (*.json)')
-            if not fn:
-                return
             try:
-                rows = []
+                # build RX entries from table rows using provided column mapping
+                rx_entries = []
                 for r in range(table.rowCount()):
-                    rows.append({
-                        'Name': _safe_text(r, 0),
-                        'Address': _safe_text(r, 1),
-                        'Type': _safe_text(r, 2),
-                        'Unit': _safe_text(r, 3),
-                        'Scale': _safe_text(r, 4),
-                        'Comment': _safe_text(r, 5),
+                    reg_txt = _safe_text(r, 1)
+                    # try parse register as int (support hex 0x...)
+                    register = None
+                    try:
+                        if isinstance(reg_txt, str) and reg_txt.lower().startswith('0x'):
+                            register = int(reg_txt, 16)
+                        else:
+                            register = int(reg_txt)
+                    except Exception:
+                        # keep original if parsing fails
+                        register = reg_txt
+
+                    # factor from scale column
+                    factor_txt = _safe_text(r, 4)
+                    try:
+                        factor = float(factor_txt)
+                    except Exception:
+                        factor = 1
+
+                    rx_entries.append({
+                        'register': register,
+                        'format': _safe_text(r, 2),
+                        'unit': _safe_text(r, 3),
+                        'description': _safe_text(r, 0),
+                        'factor': factor,
+                        'select': _safe_text(r, 5) or ''
                     })
-                payload = {'templates': rows, 'last_used': None, 'input_text': input_field.text() if input_field is not None else ''}
+
+                device_obj = {
+                    'Address': 0,
+                    'AddressBase': 0,
+                    'Type': (input_field.text().strip() if input_field is not None else ''),
+                    'TX': [],
+                    'RX': rx_entries,
+                    'LC': []
+                }
+
+                payload = {'device': device_obj}
+
+                # determine Downloads folder (fallback to Data folder)
+                home = os.path.expanduser('~') or os.path.dirname(__file__)
+                downloads = os.path.join(home, 'Downloads')
+                if not os.path.isdir(downloads):
+                    downloads = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'Data'))
+                    os.makedirs(downloads, exist_ok=True)
+
+                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"modbus_device_export_{timestamp}.json"
+                fn = os.path.join(downloads, filename)
+
                 with open(fn, 'w', encoding='utf-8') as f:
                     json.dump(payload, f, ensure_ascii=False, indent=2)
-                QMessageBox.information(widget, _lbl('export_json'), 'OK')
+
+                QMessageBox.information(widget, _lbl('export_json'), f"{_lbl('file_save')}: {fn}")
             except Exception:
                 QMessageBox.warning(widget, _lbl('export_json'), 'Fehler')
 

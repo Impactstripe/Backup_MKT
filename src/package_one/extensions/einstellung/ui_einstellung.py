@@ -3,7 +3,8 @@ import os
 import json
 from . import logic_einstellung
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QObject
+from typing import cast
+from PyQt6.QtCore import QObject, Qt
 from package_one.main_funktions import get_language, get_settings_default_language, get_available_languages
 
 
@@ -30,6 +31,12 @@ def _write_names(data):
 def get_widget(translation=None, *args, **kwargs):
     widget = QWidget()
     layout = QVBoxLayout(widget)
+    # align all UI elements to the top of the settings widget
+    try:
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+    except Exception:
+        # fallback for older Qt bindings
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
     title_lbl = QLabel(logic_einstellung.get_text())
     layout.addWidget(title_lbl)
@@ -60,6 +67,27 @@ def get_widget(translation=None, *args, **kwargs):
         idx = 0
     combo.setCurrentIndex(idx)
 
+    # set prompt label text for settings page on initial load (if provided by caller)
+    try:
+        settings_group = names.get('settings_page', {})
+        labels_root = names
+        labels_group = names.get('labels', {})
+        labels_menu = names.get('menu_punkte', {})
+        v = settings_group.get('choose_prompt') or labels_root.get('choose_prompt') or labels_group.get('choose_prompt') or labels_menu.get('choose_prompt')
+        if isinstance(v, dict):
+            prompt_text = v.get(current) or next(iter(v.values()))
+        else:
+            prompt_text = v or 'choose_prompt'
+        top_widgets = kwargs.get('top_widgets', {})
+        prompt_widget = top_widgets.get('prompt_label')
+        if prompt_widget is not None and hasattr(prompt_widget, 'setText'):
+            try:
+                prompt_widget.setText(prompt_text)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     def on_change(i):
         code = combo.itemData(i)
         # persist language in settings
@@ -76,15 +104,16 @@ def get_widget(translation=None, *args, **kwargs):
                 new_title = wt.get(code) or next(iter(wt.values()))
             else:
                 new_title = wt or 'Toolbox'
-            # set title on all top-level windows
-            app = QApplication.instance()
-            if app:
+            # set title on all top-level windows (guard against QCoreApplication typing)
+            app = cast(QApplication, QApplication.instance())
+            if app and hasattr(app, 'topLevelWidgets'):
                 for w in app.topLevelWidgets():
                     try:
                         w.setWindowTitle(new_title)
                     except Exception:
                         pass
-            # update registered widgets (labels may be at root, under "labels", or under "menu_punkte")
+            # update registered widgets (labels may be under settings_page, at root, under "labels", or under "menu_punkte")
+            labels_settings = n.get('settings_page', {})
             labels_root = n
             labels_group = n.get('labels', {})
             labels_menu = n.get('menu_punkte', {})
@@ -100,7 +129,7 @@ def get_widget(translation=None, *args, **kwargs):
                 widget = top_widgets.get(obj_name)
                 if widget is None:
                     continue
-                v = labels_root.get(lbl_key)
+                v = labels_settings.get(lbl_key) or labels_root.get(lbl_key)
                 if v is None:
                     v = labels_group.get(lbl_key)
                 if v is None:

@@ -7,20 +7,22 @@
     "menu_punkte": {
         "menu_main": { "de": "Hauptmenü", "en": "Main Menu", "ru": "Главное меню" },
         "settings": { "de": "Einstellungen", "en": "Settings", "ru": "Настройки" },
-        "modbus_template": { "de": "Modbus Konfigurator", "en": "Modbus Configurator", "ru": "Modbus шаблон" }
+        "modbus_template": { "de": "Modbus Konfigurator", "en": "Modbus Configurator", "ru": "Modbus шаблон" },
+        "search": { "de": "Suche", "en": "Search", "ru": "Поиск" }
     },
-    "choose_prompt": {
-        "de": "Bitte wähle einen Button links!",
-        "en": "Please choose a button on the left!",
-        "ru": "Пожалуйста, выберите кнопку слева!"
+    "main_menu_page": {
+        "choose_prompt": {
+            "de": "Bitte wähle einen Button links!",
+            "en": "Please choose a button on the left!",
+            "ru": "Пожалуйста, выберите кнопку слева!"
+        }
     },
-    
     "modbus_template_page": {
         "nav_file": { "de": "Datei", "en": "File", "ru": "Файл" },
         "nav_import": { "de": "Import", "en": "Import", "ru": "Импорт" },
         "nav_export": { "de": "Export", "en": "Export", "ru": "Экспорт" },
-        "toolbar_opt1": { "de": "Option 1", "en": "Option 1", "ru": "Опция 1" },
-        "toolbar_opt2": { "de": "Option 2", "en": "Option 2", "ru": "Опция 2" },
+        "toolbar_opt1": { "de": "Zeile hinzufügen", "en": "Add Row", "ru": "Добавить строку" },
+        "toolbar_opt2": { "de": "Zeile entfernen", "en": "Remove Row", "ru": "Удалить строку" },
         "input_placeholder": { "de": "Eingabetext...", "en": "Input...", "ru": "Текст..." },
         "file_new_table": { "de": "Neue Tabelle", "en": "New Table", "ru": "Новая таблица" },
         "file_load_from_template": { "de": "Aus Template laden", "en": "Load From Template", "ru": "Загрузить из шаблона" },
@@ -30,8 +32,7 @@
         "import_csv": { "de": "Importieren (.csv)", "en": "Import (.csv)", "ru": "Импорт (.csv)" },
         "import_json": { "de": "Importieren (.json)", "en": "Import (.json)", "ru": "Импорт (.json)" },
         "export_csv": { "de": "Exportieren (.csv)", "en": "Export (.csv)", "ru": "Экспорт (.csv)" },
-        "export_json": { "de": "Exportieren (.json)", "en": "Export (.json)", "ru": "Экспорт (.json)" }
-        },
+        "export_json": { "de": "Exportieren (.json)", "en": "Export (.json)", "ru": "Экспорт (.json)" },
         "column_names": {
             "col_name": { "de": "Name", "en": "Name", "ru": "Имя" },
             "col_address": { "de": "Adresse", "en": "Address", "ru": "Адрес" },
@@ -40,4 +41,14 @@
             "col_scale": { "de": "Skalierung", "en": "Scale", "ru": "Масштаб" },
             "col_comment": { "de": "Kommentar", "en": "Comment", "ru": "Комментарий" }
         }
+    }
+    ,
+    "settings_page": {
+        "choose_prompt": {
+            "de": "Bitte wähle eine Einstellung aus!",
+            "en": "Please choose a setting!",
+            "ru": "Пожалуйста, выберите настройку!"
+        }
+    }
 }
+    

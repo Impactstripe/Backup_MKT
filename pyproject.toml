@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
 authors = [
-  { name = "Arican", email = "you@example.com" },
+  { name = "Arican"" },
 ]
 dependencies = [
     "PyQt6==6.10.2",

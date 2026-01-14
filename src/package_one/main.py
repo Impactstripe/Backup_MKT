@@ -5,17 +5,17 @@ from PyQt6.QtWidgets import (
 	QApplication, QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QScrollArea, QSizePolicy
 )
 from PyQt6.QtCore import Qt
-from .main_funktions import clear_content, update_content, get_language, get_settings_default_language, get_available_languages
+from . import main_funktions
+from .mc_ui.mc_ui_elements import MCUIFactory
+from typing import cast
+from PyQt6.QtWidgets import QPushButton
 
 def main():
-	# settings path retained for potential future use (moved to Data)
 	settings_path = os.path.join(os.path.dirname(__file__), 'Data', 'settings.json')
 
-	# Ensure project root is on sys.path so packages at repo root (e.g. `extensions`) are importable
 	project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 	if project_root not in sys.path:
 		sys.path.insert(0, project_root)
-	# Also ensure `src` folder is on sys.path so `package_one` can be imported directly
 	src_path = os.path.join(project_root, 'src')
 	if src_path not in sys.path and os.path.exists(src_path):
 		sys.path.insert(0, src_path)
@@ -40,10 +40,10 @@ def main():
 		wt = _names.get('window_title')
 		if isinstance(wt, dict):
 			# prefer a default set in settings.json, otherwise fall back to derived languages
-			settings_default = get_settings_default_language()
-			languages = get_available_languages()
+			settings_default = main_funktions.get_settings_default_language()
+			languages = main_funktions.get_available_languages()
 			fallback = _names.get('default_language') or (languages[0] if languages else 'de')
-			lang = get_language(default=(settings_default or fallback))
+			lang = main_funktions.get_language(default=(settings_default or fallback))
 			window_title = wt.get(lang) or next(iter(wt.values()))
 		else:
 			window_title = wt or 'Toolbox'
@@ -63,14 +63,17 @@ def main():
 	# Hauptmenü-Button oben (label from names.json)
 	def _lbl(key):
 		# use preloaded names and persisted language setting
-		settings_default = get_settings_default_language()
-		languages = get_available_languages()
+		settings_default = main_funktions.get_settings_default_language()
+		languages = main_funktions.get_available_languages()
 		fallback = _names.get('default_language') or (languages[0] if languages else 'de')
-		lang_local = get_language(default=(settings_default or fallback))
+		lang_local = main_funktions.get_language(default=(settings_default or fallback))
 		# labels may be stored directly at root (e.g. "menu_main": {..}) or under "labels"
 		v = _names.get(key)
 		if v is None:
 			v = _names.get('labels', {}).get(key)
+		if v is None:
+			# also support labels grouped under 'main_menu_page' (e.g. choose_prompt)
+			v = _names.get('main_menu_page', {}).get(key)
 		if v is None:
 			# also support menu labels grouped under 'menu_punkte'
 			v = _names.get('menu_punkte', {}).get(key)
@@ -83,19 +86,16 @@ def main():
 	mainmenu_btn.setObjectName('mainmenu_btn')
 	button_layout.addWidget(mainmenu_btn)
 	def show_mainmenu():
-		clear_content(content_layout)
-		prompt = QLabel(_lbl('choose_prompt'))
+		main_funktions.clear_content(content_layout)
+		prompt = ui_factory.make_status_label(_lbl('choose_prompt'))
 		prompt.setObjectName('prompt_label')
 		content_layout.addWidget(prompt)
 		# update reference to current prompt label for other modules
 		top_widgets['prompt_label'] = prompt
 	mainmenu_btn.clicked.connect(lambda: show_mainmenu())
 
-	# Modbus Extension Button
-	modbus_btn = QPushButton(_lbl('modbus_template'))
-	modbus_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-	modbus_btn.setObjectName('modbus_btn')
-	button_layout.addWidget(modbus_btn)
+	# object-oriented UI factory (buttons created after content area exists)
+	ui_factory = MCUIFactory()
 	# Nur Einstellungen-Button
 	button_layout.addStretch()
 	button5 = QPushButton(_lbl('settings'))
@@ -128,6 +128,13 @@ def main():
 	content_widget.setLayout(content_layout)
 	content_widget.setObjectName('contentArea')
 
+	# provide UI factory with menu/context so it can create+register buttons
+	ui_factory.set_menu_context(button_layout=button_layout, content_layout=content_layout, settings_path=settings_path, button_refs=button_refs, button5=None, top_widgets=None, label_getter=_lbl)
+
+	# create sidebar buttons via factory with a single call (name + callback)
+	modbus_btn = cast(QPushButton, ui_factory.add_menu_button('modbus_template', lambda: main_funktions.update_content(1, content_layout, None, settings_path, button_refs, None), object_name='modbus_btn'))
+	search_btn = cast(QPushButton, ui_factory.add_menu_button('search', lambda: main_funktions.update_content(2, content_layout, None, settings_path, button_refs, None), object_name='search_btn'))
+
 	# use clear_content and update_content from main_funktions
 
 	# Initialer Inhalt: zeige das Hauptmenü beim Start
@@ -135,6 +142,7 @@ def main():
 	top_widgets = {
 		'mainmenu_btn': mainmenu_btn,
 		'modbus_btn': modbus_btn,
+		'search_btn': search_btn,
 		'settings_btn': button5,
 		# placeholder for dynamic prompt label (will be set later)
 		'prompt_label': None,
@@ -144,14 +152,9 @@ def main():
 	show_mainmenu()
 
 	for idx, btn in enumerate(button_refs):
-		btn.clicked.connect(lambda checked, i=idx: update_content(i, content_layout, None, settings_path, button_refs, button5, top_widgets=top_widgets))
-	button5.clicked.connect(lambda checked: update_content(0, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
-	# connect Modbus button to the new extension (index 1)
-	try:
-		modbus_btn.clicked.connect(lambda checked: update_content(1, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
-	except NameError:
-		# modbus_btn may not exist in older checkouts
-		pass
+		btn.clicked.connect(lambda checked, i=idx: main_funktions.update_content(i, content_layout, None, settings_path, button_refs, button5, top_widgets=top_widgets))
+	button5.clicked.connect(lambda checked: main_funktions.update_content(0, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
+	# buttons were created and connected via `ui_factory.add_menu_button`
 
 	main_layout.addWidget(flickable_widget)
 	main_layout.addWidget(content_widget, stretch=1)
@@ -160,7 +163,7 @@ def main():
 	window.setMinimumSize(1200, 800)
 
 	# QSS laden
-	qss_path = os.path.join(os.path.dirname(__file__), 'main.qss')
+	qss_path = os.path.join(os.path.dirname(__file__), 'mc_ui', 'mc_styleguide.qss')
 	if os.path.exists(qss_path):
 		try:
 			with open(qss_path, 'r', encoding='utf-8') as f:
