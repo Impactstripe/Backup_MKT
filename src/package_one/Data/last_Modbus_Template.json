@@ -1,38 +1,46 @@
 {
   "templates": [
     {
-      "Name": "Item 1",
-      "Address": "0x00",
-      "Type": "uint16",
+      "Address": "10",
+      "Type": "UINT8",
       "Unit": "",
-      "Scale": "1",
-      "Comment": "test "
+      "Comment": "1",
+      "Scale": "1.0",
+      "Functions": "1"
     },
     {
-      "Name": "Item 9",
-      "Address": "0x00",
-      "Type": "uint16",
+      "Address": "11",
+      "Type": "UINT8",
       "Unit": "",
-      "Scale": "1",
-      "Comment": ""
+      "Comment": "4",
+      "Scale": "3.0",
+      "Functions": "1"
     },
     {
-      "Name": "Item 3",
-      "Address": "0x00",
-      "Type": "uint16",
+      "Address": "15",
+      "Type": "UINT8",
       "Unit": "",
-      "Scale": "1",
-      "Comment": ""
+      "Comment": "5",
+      "Scale": "1.0",
+      "Functions": "2"
     },
     {
-      "Name": "Item 4",
-      "Address": "0x00",
-      "Type": "uint16",
+      "Address": "18",
+      "Type": "UINT8",
       "Unit": "",
-      "Scale": "1",
-      "Comment": ""
+      "Comment": "6",
+      "Scale": "1.0",
+      "Functions": "3"
+    },
+    {
+      "Address": "20",
+      "Type": "UINT8",
+      "Unit": "",
+      "Comment": "3",
+      "Scale": "1.0",
+      "Functions": "4"
     }
   ],
   "last_used": null,
-  "input_text": "Test 2"
+  "input_text": "erster eintrag"
 }

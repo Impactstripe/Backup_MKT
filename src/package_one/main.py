@@ -6,9 +6,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from . import main_funktions
-from .mc_ui.mc_ui_elements import MCUIFactory
-from typing import cast
-from PyQt6.QtWidgets import QPushButton
 
 def main():
 	settings_path = os.path.join(os.path.dirname(__file__), 'Data', 'settings.json')
@@ -87,15 +84,24 @@ def main():
 	button_layout.addWidget(mainmenu_btn)
 	def show_mainmenu():
 		main_funktions.clear_content(content_layout)
-		prompt = ui_factory.make_status_label(_lbl('choose_prompt'))
+		prompt = QLabel(_lbl('choose_prompt'))
 		prompt.setObjectName('prompt_label')
 		content_layout.addWidget(prompt)
 		# update reference to current prompt label for other modules
 		top_widgets['prompt_label'] = prompt
 	mainmenu_btn.clicked.connect(lambda: show_mainmenu())
 
-	# object-oriented UI factory (buttons created after content area exists)
-	ui_factory = MCUIFactory()
+	# Modbus Extension Button
+	modbus_btn = QPushButton(_lbl('modbus_template'))
+	modbus_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+	modbus_btn.setObjectName('modbus_btn')
+	button_layout.addWidget(modbus_btn)
+
+	# Search Extension Button
+	search_btn = QPushButton(_lbl('search'))
+	search_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+	search_btn.setObjectName('search_btn')
+	button_layout.addWidget(search_btn)
 	# Nur Einstellungen-Button
 	button_layout.addStretch()
 	button5 = QPushButton(_lbl('settings'))
@@ -128,13 +134,6 @@ def main():
 	content_widget.setLayout(content_layout)
 	content_widget.setObjectName('contentArea')
 
-	# provide UI factory with menu/context so it can create+register buttons
-	ui_factory.set_menu_context(button_layout=button_layout, content_layout=content_layout, settings_path=settings_path, button_refs=button_refs, button5=None, top_widgets=None, label_getter=_lbl)
-
-	# create sidebar buttons via factory with a single call (name + callback)
-	modbus_btn = cast(QPushButton, ui_factory.add_menu_button('modbus_template', lambda: main_funktions.update_content(1, content_layout, None, settings_path, button_refs, None), object_name='modbus_btn'))
-	search_btn = cast(QPushButton, ui_factory.add_menu_button('search', lambda: main_funktions.update_content(2, content_layout, None, settings_path, button_refs, None), object_name='search_btn'))
-
 	# use clear_content and update_content from main_funktions
 
 	# Initialer Inhalt: zeige das Hauptmenü beim Start
@@ -154,7 +153,13 @@ def main():
 	for idx, btn in enumerate(button_refs):
 		btn.clicked.connect(lambda checked, i=idx: main_funktions.update_content(i, content_layout, None, settings_path, button_refs, button5, top_widgets=top_widgets))
 	button5.clicked.connect(lambda checked: main_funktions.update_content(0, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
-	# buttons were created and connected via `ui_factory.add_menu_button`
+	# connect Modbus button to the new extension (index 1)
+	try:
+		modbus_btn.clicked.connect(lambda checked: main_funktions.update_content(1, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
+		search_btn.clicked.connect(lambda checked: main_funktions.update_content(2, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
+	except NameError:
+		# modbus_btn may not exist in older checkouts
+		pass
 
 	main_layout.addWidget(flickable_widget)
 	main_layout.addWidget(content_widget, stretch=1)

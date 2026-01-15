@@ -5,7 +5,9 @@ import json
 import os
 import csv
 import datetime
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QStyledItemDelegate, QComboBox
+from PyQt6.QtGui import QFont
 from .logic_modbus_template import ModbusTemplateManager
 from package_one.main_funktions import get_language, get_settings_default_language, get_available_languages
 
@@ -169,12 +171,12 @@ def get_widget(translation=None, *args, **kwargs):
     # header labels are loaded from names.json via _lbl defined earlier
 
     headers = [
-        _lbl('col_name'),
-        _lbl('col_address'),
-        _lbl('col_type'),
-        _lbl('col_unit'),
-        _lbl('col_scale'),
-        _lbl('col_comment'),
+        _lbl('col_register'),    # Register
+        _lbl('col_datentyp'),    # Datentyp
+        _lbl('col_einheit'),     # Einheit
+        _lbl('col_beschreibung'),# Beschreibung
+        _lbl('col_faktor'),      # Faktor
+        _lbl('col_modbus_funktionen'),  # Modbus Funktionen
     ]
     table.setHorizontalHeaderLabels(headers)
     table.setRowCount(0)
@@ -226,6 +228,200 @@ def get_widget(translation=None, *args, **kwargs):
             pass
     layout.addWidget(table, stretch=1)
 
+    # Allowed datatypes and autocomplete delegate for the Datentyp column
+    DATATYPES = [
+        'INT8', 'UINT8',
+        'INT16 HL', 'INT16 LH', 'UINT16 HL', 'UINT16 LH',
+        'INT32 HL', 'INT32 LH', 'UINT32 HL', 'UINT32 LH',
+        'INT32 B0123', 'UINT32 B0123',
+        'INT48 HL', 'INT48 LH', 'UINT48 HL', 'UINT48 LH',
+        'INT48 B012345', 'UINT48 B012345',
+        'INT64 HL', 'INT64 LH', 'UINT64 HL', 'UINT64 LH',
+        'INT64 B01234567', 'UINT64 B01234567',
+        'FLOAT32 HL', 'FLOAT32 LH', 'FLOAT32 B0123',
+        'FLOAT64 HL', 'FLOAT64 LH', 'FLOAT64 B01234567',
+        'HEX8',
+        'HEX16 HL', 'HEX16 LH',
+        'HEX32 HL', 'HEX32 LH',
+        'HEX48 HL', 'HEX48 LH',
+        'HEX64 HL', 'HEX64 LH',
+    ]
+
+    # allowed Modbus functions (1..4)
+    MODBUS_FUNCTIONS = ['1', '2', '3', '4']
+
+    class DatatypeDelegate(QStyledItemDelegate):
+        def __init__(self, parent=None, values=None):
+            super().__init__(parent)
+            self.values = values or []
+
+        def createEditor(self, parent, option, index):
+            # only provide editor for the datentyp column (index 1)
+            if index.column() == 1:
+                cb = QComboBox(parent)
+                cb.setEditable(True)
+                cb.addItems(self.values)
+                try:
+                    from PyQt6.QtWidgets import QCompleter
+                    completer = QCompleter(self.values, cb)
+                    completer.setCaseSensitivity(Qt.CaseInsensitive)
+                    cb.setCompleter(completer)
+                except Exception:
+                    pass
+                return cb
+            return super().createEditor(parent, option, index)
+
+        def setEditorData(self, editor, index):
+            if isinstance(editor, QComboBox):
+                val = index.data() or ''
+                i = editor.findText(val)
+                if i >= 0:
+                    editor.setCurrentIndex(i)
+                else:
+                    editor.setEditText(val)
+            else:
+                super().setEditorData(editor, index)
+
+        def setModelData(self, editor, model, index):
+            if isinstance(editor, QComboBox):
+                text = editor.currentText().strip()
+                model.setData(index, text)
+            else:
+                super().setModelData(editor, model, index)
+
+        def updateEditorGeometry(self, editor, option, index):
+            editor.setGeometry(option.rect)
+
+    # install delegate for datentyp column and for modbus functions column
+    delegate = DatatypeDelegate(widget, DATATYPES)
+    table.setItemDelegateForColumn(1, delegate)
+    func_delegate = DatatypeDelegate(widget, MODBUS_FUNCTIONS)
+    table.setItemDelegateForColumn(5, func_delegate)
+
+    # transient popup in top-right for unsupported datatypes
+    def show_top_right_popup(message: str):
+        try:
+            popup = QLabel(message, widget)
+            popup.setObjectName('mc_datatype_popup')
+            popup.setStyleSheet('background: #ffcccc; border: 1px solid #990000; padding:6px;')
+            popup.setFont(QFont('Segoe UI', 9))
+            popup.adjustSize()
+            x = max(10, widget.width() - popup.width() - 10)
+            popup.move(x, 10)
+            popup.show()
+            QTimer.singleShot(2500, popup.deleteLater)
+        except Exception:
+            try:
+                QMessageBox.warning(widget, 'Datentyp', message)
+            except Exception:
+                pass
+
+    # validate entries after edits
+    def _validate_cell(item):
+        try:
+            if item is None:
+                return
+            col = item.column()
+            val = (item.text() or '').strip()
+            if not val:
+                return
+            if col == 1:
+                # Datentyp column
+                ok = any(val.lower() == t.lower() for t in DATATYPES)
+                if not ok:
+                    show_top_right_popup(f"Datentyp '{val}' wird nicht unterstützt")
+                    try:
+                        table.blockSignals(True)
+                        item.setText('')
+                    finally:
+                        try:
+                            table.blockSignals(False)
+                        except Exception:
+                            pass
+            elif col == 5:
+                # Modbus functions column (must be '1'..'4')
+                ok = val in MODBUS_FUNCTIONS
+                if not ok:
+                    show_top_right_popup("ungültige Modbus Funktion")
+                    try:
+                        table.blockSignals(True)
+                        item.setText('')
+                    finally:
+                        try:
+                            table.blockSignals(False)
+                        except Exception:
+                            pass
+            elif col == 0:
+                # Register column: accept decimal integers or hex (0x...) and disallow duplicates
+                try:
+                    if isinstance(val, str) and val.lower().startswith('0x'):
+                        num = int(val, 16)
+                    else:
+                        num = int(val)
+                    # check for duplicates in other rows
+                    for rr in range(table.rowCount()):
+                        if rr == item.row():
+                            continue
+                        other_txt = _safe_text(rr, 0)
+                        if not other_txt:
+                            continue
+                        try:
+                            if isinstance(other_txt, str) and other_txt.lower().startswith('0x'):
+                                other_num = int(other_txt, 16)
+                            else:
+                                other_num = int(other_txt)
+                        except Exception:
+                            # ignore unparsable other rows
+                            continue
+                        if other_num == num:
+                            show_top_right_popup('Doppelter Registerwert nicht erlaubt')
+                            try:
+                                table.blockSignals(True)
+                                item.setText('')
+                            finally:
+                                try:
+                                    table.blockSignals(False)
+                                except Exception:
+                                    pass
+                            return
+                except Exception:
+                    show_top_right_popup("Ungültiger Registerwert")
+                    try:
+                        table.blockSignals(True)
+                        item.setText('')
+                    finally:
+                        try:
+                            table.blockSignals(False)
+                        except Exception:
+                            pass
+                else:
+                    # if parsing succeeded and no duplicates, keep table sorted
+                    try:
+                        sort_table_by_register()
+                    except Exception:
+                        try:
+                            save_to_file()
+                        except Exception:
+                            pass
+            elif col == 4:
+                # Faktor column: must be float
+                try:
+                    float(val)
+                except Exception:
+                    show_top_right_popup("Ungültiger Faktor")
+                    try:
+                        table.blockSignals(True)
+                        item.setText('')
+                    finally:
+                        try:
+                            table.blockSignals(False)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+    table.itemChanged.connect(_validate_cell)
+
     # safe text helper available to other nested handlers
     def _safe_text(row_idx, col_idx):
         try:
@@ -233,6 +429,49 @@ def get_widget(translation=None, *args, **kwargs):
             return it.text() if it is not None else ''
         except Exception:
             return ''
+
+
+    def _parse_register_value(txt):
+        """Parse register text (supports hex 0x.. and decimal). Returns int or None."""
+        try:
+            if isinstance(txt, str) and txt.lower().startswith('0x'):
+                return int(txt, 16)
+            return int(str(txt))
+        except Exception:
+            return None
+
+
+    def sort_table_by_register():
+        """Reorder table rows ascending by numeric register (column 0)."""
+        try:
+            rows = []
+            for r in range(table.rowCount()):
+                # capture full row as list of texts
+                row_vals = [ _safe_text(r, c) for c in range(table.columnCount()) ]
+                reg_num = _parse_register_value(row_vals[0])
+                # use large sentinel for unparsable to push to end
+                key = reg_num if reg_num is not None else float('inf')
+                rows.append((key, row_vals))
+
+            rows.sort(key=lambda x: x[0])
+
+            # repopulate table in sorted order
+            table.blockSignals(True)
+            table.setRowCount(0)
+            for i, (_k, vals) in enumerate(rows):
+                table.insertRow(i)
+                for c, v in enumerate(vals):
+                    table.setItem(i, c, QTableWidgetItem(str(v)))
+            table.blockSignals(False)
+            try:
+                save_to_file()
+            except Exception:
+                pass
+        except Exception:
+            try:
+                table.blockSignals(False)
+            except Exception:
+                pass
 
     # path for last template file in Data
     data_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'last_Modbus_Template.json'))
@@ -250,12 +489,12 @@ def get_widget(translation=None, *args, **kwargs):
                         return ''
 
                 row = {
-                    'Name': _safe_text(r, 0),
-                    'Address': _safe_text(r, 1),
-                    'Type': _safe_text(r, 2),
-                    'Unit': _safe_text(r, 3),
+                    'Address': _safe_text(r, 0),
+                    'Type': _safe_text(r, 1),
+                    'Unit': _safe_text(r, 2),
+                    'Comment': _safe_text(r, 3),
                     'Scale': _safe_text(r, 4),
-                    'Comment': _safe_text(r, 5),
+                    'Functions': _safe_text(r, 5),
                 }
                 rows.append(row)
             # include current input field text
@@ -277,18 +516,24 @@ def get_widget(translation=None, *args, **kwargs):
             table.setRowCount(0)
             for i, tpl in enumerate(templates):
                 table.insertRow(i)
-                table.setItem(i, 0, QTableWidgetItem(str(tpl.get('Name', '') or '')))
-                table.setItem(i, 1, QTableWidgetItem(str(tpl.get('Address', '') or '')))
-                table.setItem(i, 2, QTableWidgetItem(str(tpl.get('Type', '') or '')))
-                table.setItem(i, 3, QTableWidgetItem(str(tpl.get('Unit', '') or '')))
+                table.setItem(i, 0, QTableWidgetItem(str(tpl.get('Address', '') or '')))
+                table.setItem(i, 1, QTableWidgetItem(str(tpl.get('Type', '') or '')))
+                table.setItem(i, 2, QTableWidgetItem(str(tpl.get('Unit', '') or '')))
+                # map older 'Name' to Description/Comment if present
+                descr = tpl.get('Comment', '') or tpl.get('Name', '')
+                table.setItem(i, 3, QTableWidgetItem(str(descr or '')))
                 table.setItem(i, 4, QTableWidgetItem(str(tpl.get('Scale', '') or '')))
-                table.setItem(i, 5, QTableWidgetItem(str(tpl.get('Comment', '') or '')))
+                table.setItem(i, 5, QTableWidgetItem(str(tpl.get('Functions', '') or tpl.get('select', '') or '')))
             # restore input field text if present
             try:
                 input_field.setText(str(data.get('input_text', '') or ''))
             except Exception:
                 pass
             table.blockSignals(False)
+            try:
+                sort_table_by_register()
+            except Exception:
+                pass
             return True
         except Exception:
             try:
@@ -323,12 +568,13 @@ def get_widget(translation=None, *args, **kwargs):
                 table.setRowCount(0)
                 for i, tpl in enumerate(templates):
                     table.insertRow(i)
-                    table.setItem(i, 0, QTableWidgetItem(str(tpl.get('Name', '') or '')))
-                    table.setItem(i, 1, QTableWidgetItem(str(tpl.get('Address', '') or '')))
-                    table.setItem(i, 2, QTableWidgetItem(str(tpl.get('Type', '') or '')))
-                    table.setItem(i, 3, QTableWidgetItem(str(tpl.get('Unit', '') or '')))
+                    table.setItem(i, 0, QTableWidgetItem(str(tpl.get('Address', '') or '')))
+                    table.setItem(i, 1, QTableWidgetItem(str(tpl.get('Type', '') or '')))
+                    table.setItem(i, 2, QTableWidgetItem(str(tpl.get('Unit', '') or '')))
+                    descr = tpl.get('Comment', '') or tpl.get('Name', '')
+                    table.setItem(i, 3, QTableWidgetItem(str(descr or '')))
                     table.setItem(i, 4, QTableWidgetItem(str(tpl.get('Scale', '') or '')))
-                    table.setItem(i, 5, QTableWidgetItem(str(tpl.get('Comment', '') or '')))
+                    table.setItem(i, 5, QTableWidgetItem(str(tpl.get('Functions', '') or tpl.get('select', '') or '')))
                 table.blockSignals(False)
             except Exception:
                 QMessageBox.warning(widget, _lbl('file_load_from_template'), 'Fehler beim Laden')
@@ -401,11 +647,19 @@ def get_widget(translation=None, *args, **kwargs):
             if not fn:
                 return
             try:
+                # export table 1:1 as CSV, with a metadata row documenting the input field
                 with open(fn, 'w', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
-                    writer.writerow([_lbl('col_name'), _lbl('col_address'), _lbl('col_type'), _lbl('col_unit'), _lbl('col_scale'), _lbl('col_comment')])
+                    try:
+                        input_text = input_field.text() if input_field is not None else ''
+                    except Exception:
+                        input_text = ''
+                    # metadata row (first row) documents input_field above the table
+                    writer.writerow(["#input", input_text])
+                    writer.writerow([_lbl('col_address'), _lbl('col_type'), _lbl('col_unit'), _lbl('col_comment'), _lbl('col_scale'), _lbl('col_modbus_functions')])
                     for r in range(table.rowCount()):
-                        writer.writerow([_safe_text(r, c) for c in range(table.columnCount())])
+                        row_vals = [_safe_text(r, c) for c in range(table.columnCount())]
+                        writer.writerow(row_vals)
                 QMessageBox.information(widget, _lbl('export_csv'), 'OK')
             except Exception:
                 QMessageBox.warning(widget, _lbl('export_csv'), 'Fehler')
@@ -415,7 +669,7 @@ def get_widget(translation=None, *args, **kwargs):
                 # build RX entries from table rows using provided column mapping
                 rx_entries = []
                 for r in range(table.rowCount()):
-                    reg_txt = _safe_text(r, 1)
+                    reg_txt = _safe_text(r, 0)
                     # try parse register as int (support hex 0x...)
                     register = None
                     try:
@@ -434,22 +688,117 @@ def get_widget(translation=None, *args, **kwargs):
                     except Exception:
                         factor = 1
 
+                    # Always export an empty select for RX entries per requirement
                     rx_entries.append({
                         'register': register,
-                        'format': _safe_text(r, 2),
-                        'unit': _safe_text(r, 3),
-                        'description': _safe_text(r, 0),
+                        'format': _safe_text(r, 1),
+                        'unit': _safe_text(r, 2),
+                        'description': _safe_text(r, 3),
                         'factor': factor,
-                        'select': _safe_text(r, 5) or ''
+                        'select': ''
                     })
+
+                # Build TX blocks by grouping contiguous register ranges that share the same Modbus function.
+                # Each block: {'function': <int>, 'start': <int>, 'length': <int>} where length = last-start+1
+                tx_entries = []
+                try:
+                    # Build regs directly from table so TX derivation uses the Modbus function
+                    # column values independent of RX 'select' (which is exported empty).
+                    regs = []
+                    for row_idx in range(table.rowCount()):
+                        reg_txt = _safe_text(row_idx, 0)
+                        try:
+                            if isinstance(reg_txt, str) and reg_txt.lower().startswith('0x'):
+                                reg_num = int(reg_txt, 16)
+                            else:
+                                reg_num = int(reg_txt)
+                        except Exception:
+                            # skip unparsable registers
+                            continue
+
+                        fc_txt = _safe_text(row_idx, 5) or ''
+                        try:
+                            fc_str = str(fc_txt).strip()
+                        except Exception:
+                            fc_str = ''
+                        if not fc_str:
+                            fc_str = '3'
+                        try:
+                            fc_int = int(fc_str)
+                        except Exception:
+                            fc_int = 3
+
+                        regs.append((reg_num, fc_int))
+
+                    regs.sort(key=lambda x: x[0])
+
+                    if regs:
+                        # helper to append chunks of max length 50 for a given start..end range
+                        def _append_chunks(func_code, s, e):
+                            st = s
+                            while st <= e:
+                                chunk_len = min(50, e - st + 1)
+                                tx_entries.append({'function': func_code, 'start': st, 'length': chunk_len})
+                                st = st + chunk_len
+
+                        cur_func = regs[0][1]
+                        start = regs[0][0]
+                        end = regs[0][0]
+                        for reg, func in regs[1:]:
+                            if func == cur_func:
+                                # same function: extend block range to include this register
+                                end = reg
+                                # if current span exceeds max, emit chunks from the start
+                                if (end - start + 1) > 50:
+                                    # emit first full chunk(s) up to current end
+                                    _append_chunks(cur_func, start, start + ((end - start) // 50) * 50 + 49)
+                                    # compute new start as next address after emitted chunks
+                                    # find remaining lowest start position
+                                    # find smallest st > previous emitted end
+                                    # previous emitted end = start + ((end - start) // 50) * 50 + 49
+                                    prev_emitted_end = start + ((end - start) // 50) * 50 + 49
+                                    start = prev_emitted_end + 1
+                            else:
+                                # different function: flush existing range (chunked)
+                                _append_chunks(cur_func, start, end)
+                                start = reg
+                                end = reg
+                                cur_func = func
+                        # finalize last block (may be chunked)
+                        _append_chunks(cur_func, start, end)
+                except Exception:
+                    tx_entries = []
+
+                # build LC entry from first table row: {function: <fc>, start: <register>, length: 1}
+                lc_entries = []
+                try:
+                    if table.rowCount() > 0:
+                        first_reg_txt = _safe_text(0, 0)
+                        try:
+                            if isinstance(first_reg_txt, str) and first_reg_txt.lower().startswith('0x'):
+                                first_reg = int(first_reg_txt, 16)
+                            else:
+                                first_reg = int(first_reg_txt)
+                        except Exception:
+                            first_reg = first_reg_txt
+
+                        first_fc_txt = _safe_text(0, 5) or ''
+                        try:
+                            first_fc = int(str(first_fc_txt).strip()) if str(first_fc_txt).strip() else 3
+                        except Exception:
+                            first_fc = 3
+
+                        lc_entries.append({'function': first_fc, 'start': first_reg, 'length': 1})
+                except Exception:
+                    lc_entries = []
 
                 device_obj = {
                     'Address': 0,
                     'AddressBase': 0,
                     'Type': (input_field.text().strip() if input_field is not None else ''),
-                    'TX': [],
+                    'TX': tx_entries,
                     'RX': rx_entries,
-                    'LC': []
+                    'LC': lc_entries
                 }
 
                 payload = {'device': device_obj}
@@ -483,17 +832,34 @@ def get_widget(translation=None, *args, **kwargs):
                 if not rows:
                     QMessageBox.information(widget, _lbl('import_csv'), 'Keine Daten')
                     return
-                headers_row = rows[0]
-                expected = [_lbl('col_name'), _lbl('col_address'), _lbl('col_type'), _lbl('col_unit'), _lbl('col_scale'), _lbl('col_comment')]
-                start_idx = 1 if headers_row == expected else 0
+
+                # detect metadata input row if present (first cell '#input')
+                first = rows[0]
+                if first and len(first) > 0 and str(first[0]).strip().lower().startswith('#input'):
+                    try:
+                        val = first[1] if len(first) > 1 else ''
+                        input_field.setText(str(val))
+                    except Exception:
+                        pass
+                    # remove metadata row
+                    rows = rows[1:]
+
+                # if next row is header labels, skip it
+                expected = [_lbl('col_address'), _lbl('col_type'), _lbl('col_unit'), _lbl('col_comment'), _lbl('col_scale'), _lbl('col_modbus_functions')]
+                if rows and rows[0] == expected:
+                    rows = rows[1:]
+
+                # populate table 1:1 with rows (preserve order); pad missing columns
                 table.blockSignals(True)
                 table.setRowCount(0)
-                for i, row in enumerate(rows[start_idx:]):
+                for i, row in enumerate(rows):
                     table.insertRow(i)
-                    for c in range(min(len(row), table.columnCount())):
-                        table.setItem(i, c, QTableWidgetItem(str(row[c] if row[c] is not None else '')))
+                    for c in range(table.columnCount()):
+                        val = row[c] if c < len(row) else ''
+                        table.setItem(i, c, QTableWidgetItem(str(val)))
                 table.blockSignals(False)
                 save_to_file()
+                QMessageBox.information(widget, _lbl('import_csv'), f'Importiert: {len(rows)}')
             except Exception:
                 QMessageBox.warning(widget, _lbl('import_csv'), 'Fehler')
 
@@ -502,23 +868,163 @@ def get_widget(translation=None, *args, **kwargs):
             if not fn:
                 return
             try:
+                # read and validate JSON syntax first
                 with open(fn, 'r', encoding='utf-8') as f:
                     d = json.load(f)
-                templates = d.get('templates') or []
+
+                # determine source of rows: older templates format or exported device structure
+                rows_source = []
+                if isinstance(d, dict) and d.get('templates'):
+                    # templates format: list of template dicts
+                    rows_source = d.get('templates') or []
+                elif isinstance(d, dict) and d.get('device') and isinstance(d.get('device'), dict):
+                    # device export: prefer RX list, but derive Modbus function from TX ranges
+                    dev = d.get('device')
+                    rx = dev.get('RX') or dev.get('rx') or []
+                    tx = dev.get('TX') or dev.get('tx') or []
+
+                    # build mapping addr->function from TX blocks
+                    tx_map = {}
+                    try:
+                        for t in tx:
+                            if not isinstance(t, dict):
+                                continue
+                            # function code
+                            try:
+                                func = int(t.get('function', t.get('Function', 3)))
+                            except Exception:
+                                func = 3
+                            # start and length
+                            start = t.get('start')
+                            length = t.get('length', 1)
+                            try:
+                                if isinstance(start, str) and str(start).lower().startswith('0x'):
+                                    start_i = int(start, 16)
+                                else:
+                                    start_i = int(start)
+                                length_i = int(length)
+                            except Exception:
+                                continue
+                            for addr in range(start_i, start_i + max(1, length_i)):
+                                tx_map[addr] = func
+                    except Exception:
+                        tx_map = {}
+
+                    # normalize RX entries into template-like dicts and assign Functions from tx_map when possible
+                    norm = []
+                    for e in rx:
+                        try:
+                            if not isinstance(e, dict):
+                                continue
+                            reg = e.get('register', '')
+                            reg_int = None
+                            try:
+                                if isinstance(reg, str) and str(reg).lower().startswith('0x'):
+                                    reg_int = int(reg, 16)
+                                else:
+                                    reg_int = int(reg)
+                            except Exception:
+                                reg_int = None
+
+                            # determine function: prefer tx_map if register parseable, else fall back to select
+                            func_val = ''
+                            if reg_int is not None and reg_int in tx_map:
+                                func_val = str(tx_map.get(reg_int, ''))
+                            else:
+                                func_val = str(e.get('select', '') or '')
+
+                            norm.append({
+                                'Address': reg,
+                                'Type': e.get('format', ''),
+                                'Unit': e.get('unit', ''),
+                                'Comment': e.get('description', ''),
+                                'Scale': e.get('factor', ''),
+                                'Functions': func_val,
+                            })
+                        except Exception:
+                            continue
+                    rows_source = norm
+
+                # if no usable rows found, inform user
+                if not rows_source:
+                    QMessageBox.information(widget, _lbl('import_json'), _lbl('import_json') + ': keine Einträge gefunden')
+                    return
+
+                # validate rows and only populate valid entries
+                valid_rows = []
+                errors = []
+                seen_regs = set()
+                for i, tpl in enumerate(rows_source):
+                    # Address/register must be parseable
+                    addr_raw = tpl.get('Address', '')
+                    reg_num = _parse_register_value(addr_raw)
+                    if reg_num is None:
+                        errors.append(f"Zeile {i+1}: ungültiger Register '{addr_raw}'")
+                        continue
+
+                    # duplicate within import
+                    if reg_num in seen_regs:
+                        errors.append(f"Zeile {i+1}: doppelter Register '{addr_raw}'")
+                        continue
+
+                    # Datentyp must be supported if present
+                    dtype = str(tpl.get('Type', '') or '').strip()
+                    if dtype:
+                        ok_dt = any(dtype.lower() == t.lower() for t in DATATYPES)
+                        if not ok_dt:
+                            errors.append(f"Zeile {i+1}: ungültiger Datentyp '{dtype}'")
+                            continue
+
+                    # Faktor must be numeric if present
+                    scale_val = tpl.get('Scale', '')
+                    if scale_val is not None and str(scale_val).strip() != '':
+                        try:
+                            float(scale_val)
+                        except Exception:
+                            errors.append(f"Zeile {i+1}: ungültiger Faktor '{scale_val}'")
+                            continue
+
+                    # Functions must be one of allowed values or empty
+                    func_val = str(tpl.get('Functions', '') or '').strip()
+                    if func_val and func_val not in MODBUS_FUNCTIONS:
+                        errors.append(f"Zeile {i+1}: ungültige Modbus-Funktion '{func_val}'")
+                        continue
+
+                    seen_regs.add(reg_num)
+                    valid_rows.append(tpl)
+
+                if not valid_rows:
+                    QMessageBox.information(widget, _lbl('import_json'), 'Kein gültiger Eintrag zum Importieren.\n' + '\n'.join(errors[:10]))
+                    return
+
+                # clear and populate table with validated rows
                 table.blockSignals(True)
                 table.setRowCount(0)
-                for i, tpl in enumerate(templates):
+                for i, tpl in enumerate(valid_rows):
                     table.insertRow(i)
-                    table.setItem(i, 0, QTableWidgetItem(str(tpl.get('Name', '') or '')))
-                    table.setItem(i, 1, QTableWidgetItem(str(tpl.get('Address', '') or '')))
-                    table.setItem(i, 2, QTableWidgetItem(str(tpl.get('Type', '') or '')))
-                    table.setItem(i, 3, QTableWidgetItem(str(tpl.get('Unit', '') or '')))
+                    table.setItem(i, 0, QTableWidgetItem(str(tpl.get('Address', '') or '')))
+                    table.setItem(i, 1, QTableWidgetItem(str(tpl.get('Type', '') or '')))
+                    table.setItem(i, 2, QTableWidgetItem(str(tpl.get('Unit', '') or '')))
+                    descr = tpl.get('Comment', '') or tpl.get('Name', '')
+                    table.setItem(i, 3, QTableWidgetItem(str(descr or '')))
                     table.setItem(i, 4, QTableWidgetItem(str(tpl.get('Scale', '') or '')))
-                    table.setItem(i, 5, QTableWidgetItem(str(tpl.get('Comment', '') or '')))
+                    table.setItem(i, 5, QTableWidgetItem(str(tpl.get('Functions', '') or tpl.get('select', '') or '')))
                 table.blockSignals(False)
+                try:
+                    sort_table_by_register()
+                except Exception:
+                    pass
                 save_to_file()
+
+                # show brief import summary with up to 10 errors
+                summary = f"Importiert: {len(valid_rows)}; Übersprungen: {len(errors)}"
+                if errors:
+                    summary += '\n' + '\n'.join(errors[:10])
+                QMessageBox.information(widget, _lbl('import_json'), summary)
+            except json.JSONDecodeError as jde:
+                QMessageBox.warning(widget, _lbl('import_json'), f"JSON Syntaxfehler: {str(jde)}")
             except Exception:
-                QMessageBox.warning(widget, _lbl('import_json'), 'Fehler')
+                QMessageBox.warning(widget, _lbl('import_json'), 'Fehler beim Import')
 
         # connect import/export actions
         try:
@@ -548,12 +1054,13 @@ def get_widget(translation=None, *args, **kwargs):
     if not loaded:
         try:
             table.insertRow(0)
-            table.setItem(0, 0, QTableWidgetItem('TempSensor'))
-            table.setItem(0, 1, QTableWidgetItem('0x01'))
-            table.setItem(0, 2, QTableWidgetItem('uint16'))
-            table.setItem(0, 3, QTableWidgetItem('°C'))
+            # New column order: Register, Datentyp, Einheit, Beschreibung, Faktor, Modbus Funktionen
+            table.setItem(0, 0, QTableWidgetItem('0x01'))
+            table.setItem(0, 1, QTableWidgetItem('uint16'))
+            table.setItem(0, 2, QTableWidgetItem('°C'))
+            table.setItem(0, 3, QTableWidgetItem('Room temperature'))
             table.setItem(0, 4, QTableWidgetItem('0.1'))
-            table.setItem(0, 5, QTableWidgetItem('Room temperature'))
+            table.setItem(0, 5, QTableWidgetItem(''))
         except Exception:
             pass
 
@@ -562,16 +1069,23 @@ def get_widget(translation=None, *args, **kwargs):
         try:
             row = table.rowCount()
             table.insertRow(row)
-            name = input_field.text().strip() or f'Item {row+1}'
-            table.setItem(row, 0, QTableWidgetItem(name))
-            table.setItem(row, 1, QTableWidgetItem('0x00'))
-            table.setItem(row, 2, QTableWidgetItem('uint16'))
+            # default values for new row in the new column order
+            table.setItem(row, 0, QTableWidgetItem(''))
+            table.setItem(row, 1, QTableWidgetItem(''))
+            table.setItem(row, 2, QTableWidgetItem(''))
+            # leave Beschreibung (description) empty for new rows
             table.setItem(row, 3, QTableWidgetItem(''))
-            table.setItem(row, 4, QTableWidgetItem('1'))
+            table.setItem(row, 4, QTableWidgetItem(''))
             table.setItem(row, 5, QTableWidgetItem(''))
-            # save current state including input field
+            # save current state including input field (sort will save)
             try:
-                save_to_file()
+                try:
+                    sort_table_by_register()
+                except Exception:
+                    try:
+                        save_to_file()
+                    except Exception:
+                        pass
             except Exception:
                 pass
             # optional: clear input after saving
@@ -598,7 +1112,14 @@ def get_widget(translation=None, *args, **kwargs):
         except Exception:
             pass
         finally:
-            save_to_file()
+            try:
+                try:
+                    sort_table_by_register()
+                except Exception:
+                    pass
+                save_to_file()
+            except Exception:
+                pass
 
     # Verbinde die Toolbar-Buttons mit den Funktionen
     try:

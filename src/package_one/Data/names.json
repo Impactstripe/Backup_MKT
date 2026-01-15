@@ -34,12 +34,12 @@
         "export_csv": { "de": "Exportieren (.csv)", "en": "Export (.csv)", "ru": "Экспорт (.csv)" },
         "export_json": { "de": "Exportieren (.json)", "en": "Export (.json)", "ru": "Экспорт (.json)" },
         "column_names": {
-            "col_name": { "de": "Name", "en": "Name", "ru": "Имя" },
-            "col_address": { "de": "Adresse", "en": "Address", "ru": "Адрес" },
-            "col_type": { "de": "Typ", "en": "Type", "ru": "Тип" },
-            "col_unit": { "de": "Einheit", "en": "Unit", "ru": "Ед." },
-            "col_scale": { "de": "Skalierung", "en": "Scale", "ru": "Масштаб" },
-            "col_comment": { "de": "Kommentar", "en": "Comment", "ru": "Комментарий" }
+            "col_register": { "de": "Register", "en": "Register", "ru": "Регист" },
+            "col_datentyp": { "de": "Datentyp", "en": "Data Type", "ru": "Тип" },
+            "col_einheit": { "de": "Einheit", "en": "Unit", "ru": "Ед." },
+            "col_beschreibung": { "de": "Beschreibung", "en": "Description", "ru": "Описание" },
+            "col_faktor": { "de": "Faktor", "en": "Factor", "ru": "Масштаб" },
+            "col_modbus_funktionen": { "de": "Modbus Funktionen", "en": "Modbus Functions", "ru": "Функции Modbus" }
         }
     }
     ,

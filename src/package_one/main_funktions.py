@@ -98,28 +98,6 @@ def clear_content(content_layout):
             widget.deleteLater()
 
 
-def add_menu_button(btn, content_layout, settings_path, button_refs, button5, top_widgets=None, idx=None):
-    """Register a sidebar menu button and wire it to load the corresponding module index.
-
-    - If `idx` is None the button will be appended to `button_refs` and its index
-      will be the current length before appending.
-    - The click handler calls `update_content(index, ...)` preserving legacy args.
-    """
-    if idx is None:
-        idx = len(button_refs)
-    # ensure the button is tracked
-    button_refs.append(btn)
-
-    def _on_clicked(checked=False, i=idx):
-        update_content(i, content_layout, None, settings_path, button_refs, button5, top_widgets=top_widgets)
-
-    try:
-        btn.clicked.connect(_on_clicked)
-    except Exception:
-        # Best-effort: ignore if button has no clicked signal
-        pass
-
-
 def update_content(idx, content_layout, *args, **kwargs):
     """
     Backwards-compatible loader for UI modules.
