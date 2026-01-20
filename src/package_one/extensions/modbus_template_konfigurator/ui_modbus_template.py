@@ -1,15 +1,15 @@
 """UI for Modbus Template Konfigurator."""
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView, QMenu, QMessageBox, QFileDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView, QMenu, QMessageBox, QFileDialog, QInputDialog, QDialog, QListWidget, QDialogButtonBox, QListWidgetItem
 import json
 import os
 import csv
 import datetime
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QStyledItemDelegate, QComboBox
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QPixmap
 from .logic_modbus_template import ModbusTemplateManager
-from package_one.main_funktions import get_language, get_settings_default_language, get_available_languages
+from package_one.main import get_language, get_settings_default_language, get_available_languages
 
 
 def open_config_window():
@@ -67,45 +67,133 @@ def get_widget(translation=None, *args, **kwargs):
     nav_layout.setContentsMargins(0, 0, 0, 0)
     nav_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
     btn_datei = QPushButton(_lbl('nav_file'))
-    btn_import = QPushButton(_lbl('nav_import'))
-    btn_export = QPushButton(_lbl('nav_export'))
+    btn_io = QPushButton('Import/Export')
+    btn_help = QPushButton('Help')
+
+    # create a left container with logo above the Datei button
+    try:
+        left_container = QWidget()
+        left_layout = QVBoxLayout(left_container)
+        left_layout.setContentsMargins(0, 0, 6, 0)
+        left_layout.setSpacing(4)
+        # logo removed from this extension to avoid displaying it above the table
+        # add the Datei button under the logo in the left container
+        left_layout.addWidget(btn_datei, alignment=Qt.AlignmentFlag.AlignLeft)
+    except Exception:
+        # fallback: no container, just use the button
+        left_container = None
     # prepare File menu actions (will be connected after save/load functions exist)
     file_actions = {}
     file_menu = QMenu()
-    file_actions['new'] = file_menu.addAction(_lbl('file_new_table'))
-    file_actions['load_template'] = file_menu.addAction(_lbl('file_load_from_template'))
+    # order: Save, New Table, separator, Load from Template, separator, Saved Tables, Delete
     file_actions['save'] = file_menu.addAction(_lbl('file_save'))
+    file_actions['new'] = file_menu.addAction(_lbl('file_new_table'))
+    try:
+        file_menu.addSeparator()
+    except Exception:
+        pass
+    file_actions['load_template'] = file_menu.addAction(_lbl('file_load_from_template'))
+    try:
+        file_menu.addSeparator()
+    except Exception:
+        pass
     file_actions['list'] = file_menu.addAction(_lbl('file_saved_tables'))
     file_actions['delete'] = file_menu.addAction(_lbl('file_delete_saved'))
     btn_datei.setMenu(file_menu)
-    # Import/Export menus for the Import and Export buttons
-    import_menu = QMenu()
+    # Create IO menu containing import and export actions directly
     import_actions = {}
-    import_actions['csv'] = import_menu.addAction(_lbl('import_csv'))
-    import_actions['json'] = import_menu.addAction(_lbl('import_json'))
-    btn_import.setMenu(import_menu)
-
-    export_menu = QMenu()
     export_actions = {}
-    export_actions['csv'] = export_menu.addAction(_lbl('export_csv'))
-    export_actions['json'] = export_menu.addAction(_lbl('export_json'))
-    btn_export.setMenu(export_menu)
-    for b in (btn_datei, btn_import, btn_export):
+    io_menu = QMenu()
+    try:
+        import_actions['csv'] = io_menu.addAction(_lbl('import_csv'))
+        import_actions['json'] = io_menu.addAction(_lbl('import_json'))
+        io_menu.addSeparator()
+        export_actions['csv'] = io_menu.addAction(_lbl('export_csv'))
+        export_actions['json'] = io_menu.addAction(_lbl('export_json'))
+    except Exception:
+        # fallback to empty dicts (connectors later will handle missing)
+        import_actions = import_actions or {}
+        export_actions = export_actions or {}
+    btn_io.setMenu(io_menu)
+
+    # add left container (logo + Datei) first, then the IO button
+    if left_container is not None:
+        nav_layout.addWidget(left_container)
+    else:
+        # fallback if container failed
+        try:
+            btn_datei.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+            btn_datei.setFixedWidth(225)
+        except Exception:
+            pass
+        nav_layout.addWidget(btn_datei)
+
+    for b in (btn_io,):
         b.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         try:
-            b.setFixedWidth(100)
+            b.setFixedWidth(225)
         except Exception:
             pass
         nav_layout.addWidget(b)
-    nav.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    # style nav buttons: white border
+    # add Help button to the nav
     try:
-        nav.setStyleSheet('''
-            QPushButton { border: 1px solid white; background: transparent; }
-            QPushButton:hover { background: rgba(255,255,255,0.03); }
-        ''')
+        help_menu = QMenu()
+        help_actions = {}
+        # Only keep the 'Zulässige Datentypen' entry as requested
+        help_actions['datatypes'] = help_menu.addAction('Zulässige Datentypen')
+        btn_help.setMenu(help_menu)
+        btn_help.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        try:
+            btn_help.setFixedWidth(225)
+        except Exception:
+            pass
+        nav_layout.addWidget(btn_help)
+        # connect only the datatypes action
+        try:
+            def _show_datatypes():
+                try:
+                    datatypes_text = (
+                        'Zulässige Datentypen und Formate:\n\n'
+                        'INT8, UINT8,\n'
+                        'INT16 HL, INT16 LH, UINT16 HL, UINT16 LH,\n'
+                        'INT32 HL, INT32 LH, UINT32 HL, UINT32 LH,\n'
+                        'INT32 B0123 (beliebige Byte-Reihenfolge),\n'
+                        'UINT32 B0123 (beliebige Byte-Reihenfolge),\n'
+                        'INT48 HL, INT48 LH, UINT48 HL, UINT48 LH,\n'
+                        'INT48 B012345 (beliebige Byte-Reihenfolge),\n'
+                        'UINT48 B012345 (beliebige Byte-Reihenfolge),\n'
+                        'INT64 HL, INT64 LH, UINT64 HL, UINT64 LH,\n'
+                        'INT64 B01234567 (beliebige Byte-Reihenfolge),\n'
+                        'UINT64 B01234567 (beliebige Byte-Reihenfolge),\n'
+                        'FLOAT32 HL, FLOAT32 LH,\n'
+                        'FLOAT32 B0123 (beliebige Byte-Reihenfolge),\n'
+                        'FLOAT64 HL, FLOAT64 LH,\n'
+                        'FLOAT64 B01234567 (beliebige Byte-Reihenfolge),\n'
+                        'HEX8,\n'
+                        'HEX16 HL, HEX16 LH,\n'
+                        'HEX32 HL, HEX32 LH,\n'
+                        'HEX48 HL, HEX48 LH,\n'
+                        'HEX64 HL, HEX64 LH\n\n'
+                        'Format-Hinweis:\n'
+                        'HL = High-Byte then Low-Byte; LH = Low-Byte then High-Byte;\n'
+                        'B... bezeichnet beliebige Byte-Reihenfolge mit Angabe der Byte-Positionen,\n'
+                        'wobei 0 das niederwertigste Byte ist.\n'
+                        'Beispiele: INT32 B0123 ist gleichbedeutend mit INT32 LH;\n'
+                        'INT32 B3210 ist gleichbedeutend mit INT32 HL.'
+                    )
+                    QMessageBox.information(widget, 'Zulässige Datentypen', datatypes_text)
+                except Exception:
+                    pass
+
+            a = help_actions.get('datatypes')
+            if a is not None and hasattr(a, 'triggered'):
+                a.triggered.connect(_show_datatypes)
+        except Exception:
+            pass
     except Exception:
         pass
+    nav.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    # nav button styling removed to use default application style
 
     # menus attached to Import/Export buttons; no click placeholder needed
 
@@ -116,8 +204,8 @@ def get_widget(translation=None, *args, **kwargs):
     if isinstance(top_widgets, dict):
         top_widgets['nav_buttons'] = {
             'datei': btn_datei,
-            'import': btn_import,
-            'export': btn_export,
+            'io': btn_io,
+            'help': btn_help,
         }
 
     # Toolbar directly under nav bar with two options
@@ -131,7 +219,7 @@ def get_widget(translation=None, *args, **kwargs):
     for b in (opt1, opt2):
         b.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         try:
-            b.setFixedWidth(90)
+            b.setFixedWidth(135)
         except Exception:
             pass
         tb_layout.addWidget(b)
@@ -264,7 +352,11 @@ def get_widget(translation=None, *args, **kwargs):
                 try:
                     from PyQt6.QtWidgets import QCompleter
                     completer = QCompleter(self.values, cb)
-                    completer.setCaseSensitivity(Qt.CaseInsensitive)
+                    # use explicit CaseSensitivity enum for PyQt6
+                    try:
+                        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+                    except Exception:
+                        pass
                     cb.setCompleter(completer)
                 except Exception:
                     pass
@@ -284,13 +376,32 @@ def get_widget(translation=None, *args, **kwargs):
 
         def setModelData(self, editor, model, index):
             if isinstance(editor, QComboBox):
-                text = editor.currentText().strip()
-                model.setData(index, text)
+                # normalize user input to uppercase for Datentyp column
+                try:
+                    text = editor.currentText().strip().upper()
+                except Exception:
+                    try:
+                        text = str(editor.currentText()).strip().upper()
+                    except Exception:
+                        text = ''
+                try:
+                    if model is not None and hasattr(model, 'setData'):
+                        # prefer EditRole when available
+                        try:
+                            model.setData(index, text, Qt.ItemDataRole.EditRole)
+                        except Exception:
+                            model.setData(index, text)
+                except Exception:
+                    pass
             else:
                 super().setModelData(editor, model, index)
 
         def updateEditorGeometry(self, editor, option, index):
-            editor.setGeometry(option.rect)
+            try:
+                if editor is not None and option is not None:
+                    editor.setGeometry(option.rect)
+            except Exception:
+                pass
 
     # install delegate for datentyp column and for modbus functions column
     delegate = DatatypeDelegate(widget, DATATYPES)
@@ -327,6 +438,22 @@ def get_widget(translation=None, *args, **kwargs):
                 return
             if col == 1:
                 # Datentyp column
+                # normalize stored text to uppercase for consistent display
+                try:
+                    up = val.upper()
+                    if up != val:
+                        try:
+                            table.blockSignals(True)
+                            item.setText(up)
+                        finally:
+                            try:
+                                table.blockSignals(False)
+                            except Exception:
+                                pass
+                        val = up
+                except Exception:
+                    pass
+
                 ok = any(val.lower() == t.lower() for t in DATATYPES)
                 if not ok:
                     show_top_right_popup(f"Datentyp '{val}' wird nicht unterstützt")
@@ -474,7 +601,7 @@ def get_widget(translation=None, *args, **kwargs):
                 pass
 
     # path for last template file in Data
-    data_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'last_Modbus_Template.json'))
+    data_path = os.path.normpath(os.path.join(os.path.dirname(__file__), 'last_Modbus_Template.json'))
 
     def save_to_file():
         try:
@@ -547,23 +674,133 @@ def get_widget(translation=None, *args, **kwargs):
         def _new_table_action():
             try:
                 table.setRowCount(0)
+                try:
+                    input_field.setText('')
+                except Exception:
+                    try:
+                        input_field.clear()
+                    except Exception:
+                        pass
                 save_to_file()
             except Exception:
                 pass
 
         def _load_from_template_action():
-            # load templates from data_path and populate table (if present)
-            if not os.path.exists(data_path):
+            # present templates from the extension's modbus_templates folder and load the selection
+            modtpl_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), 'modbus_templates'))
+            if not os.path.isdir(modtpl_dir):
                 QMessageBox.information(widget, _lbl('file_load_from_template'), _lbl('file_saved_tables') + ': 0')
                 return
+
+            files = [f for f in sorted(os.listdir(modtpl_dir)) if f.lower().endswith('.json')]
+            if not files:
+                QMessageBox.information(widget, _lbl('file_load_from_template'), _lbl('file_saved_tables') + ': 0')
+                return
+
+            choices = []
+            path_map = {}
+            for fn in files:
+                p = os.path.join(modtpl_dir, fn)
+                label = os.path.splitext(fn)[0]
+                try:
+                    with open(p, 'r', encoding='utf-8') as fh:
+                        jd = json.load(fh)
+                    it = jd.get('input_text') or ''
+                    if isinstance(it, str) and it.strip():
+                        label = f"{label} — {it.strip()}"
+                except Exception:
+                    pass
+                choices.append(label)
+                path_map[label] = p
+
             try:
-                with open(data_path, 'r', encoding='utf-8') as f:
-                    d = json.load(f)
-                templates = d.get('templates') or []
-                if not templates:
-                    QMessageBox.information(widget, _lbl('file_load_from_template'), _lbl('file_saved_tables') + ': 0')
+                sel, ok = QInputDialog.getItem(widget, _lbl('file_load_from_template'), _lbl('file_load_from_template'), choices, 0, False)
+                if not ok or not sel:
                     return
-                # populate table with stored templates
+                sel_path = path_map.get(sel)
+                if not sel_path:
+                    return
+
+                # if current table has rows, ask to clear first
+                try:
+                    if table.rowCount() > 0:
+                        ans = QMessageBox.question(widget, _lbl('file_load_from_template'), 'Aktuelle Tabelle löschen?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                        if ans != QMessageBox.StandardButton.Yes:
+                            return
+                except Exception:
+                    pass
+
+                with open(sel_path, 'r', encoding='utf-8') as fh:
+                    d = json.load(fh)
+
+                # Support both legacy 'templates' format and exported 'device' format
+                templates = d.get('templates') or []
+                if not templates and isinstance(d, dict) and d.get('device'):
+                    dev = d.get('device') or {}
+                    rx = dev.get('RX') or dev.get('rx') or []
+                    tx = dev.get('TX') or dev.get('tx') or []
+
+                    # build mapping addr -> function from TX blocks
+                    tx_map = {}
+                    try:
+                        for t in tx:
+                            if not isinstance(t, dict):
+                                continue
+                            try:
+                                func = int(t.get('function', t.get('Function', 3)))
+                            except Exception:
+                                func = 3
+                            start = t.get('start')
+                            length = t.get('length', 1)
+                            try:
+                                if start is None:
+                                    continue
+                                if isinstance(start, str) and str(start).lower().startswith('0x'):
+                                    start_i = int(str(start), 16)
+                                else:
+                                    start_i = int(str(start))
+                                length_i = int(str(length))
+                            except Exception:
+                                continue
+                            for addr in range(start_i, start_i + max(1, length_i)):
+                                tx_map[addr] = func
+                    except Exception:
+                        tx_map = {}
+
+                    # normalize RX entries into template-like dicts
+                    norm = []
+                    for e in rx:
+                        try:
+                            if not isinstance(e, dict):
+                                continue
+                            reg = e.get('register', '')
+                            func_val = ''
+                            reg_int = None
+                            try:
+                                if isinstance(reg, str) and str(reg).lower().startswith('0x'):
+                                    reg_int = int(reg, 16)
+                                else:
+                                    reg_int = int(reg)
+                            except Exception:
+                                reg_int = None
+
+                            if reg_int is not None and reg_int in tx_map:
+                                func_val = str(tx_map.get(reg_int, ''))
+                            else:
+                                func_val = str(e.get('select', '') or '')
+
+                            norm.append({
+                                'Address': reg,
+                                'Type': e.get('format', ''),
+                                'Unit': e.get('unit', ''),
+                                'Comment': e.get('description', ''),
+                                'Scale': e.get('factor', ''),
+                                'Functions': func_val,
+                            })
+                        except Exception:
+                            continue
+                    templates = norm
+
                 table.blockSignals(True)
                 table.setRowCount(0)
                 for i, tpl in enumerate(templates):
@@ -576,47 +813,350 @@ def get_widget(translation=None, *args, **kwargs):
                     table.setItem(i, 4, QTableWidgetItem(str(tpl.get('Scale', '') or '')))
                     table.setItem(i, 5, QTableWidgetItem(str(tpl.get('Functions', '') or tpl.get('select', '') or '')))
                 table.blockSignals(False)
+                try:
+                    # prefer explicit input_text in file, fall back to device Type if present
+                    input_text_val = ''
+                    try:
+                        input_text_val = str(d.get('input_text', '') or '')
+                    except Exception:
+                        input_text_val = ''
+                    if not input_text_val and isinstance(d, dict) and d.get('device'):
+                        try:
+                            input_text_val = str((d.get('device') or {}).get('Type', '') or '')
+                        except Exception:
+                            input_text_val = ''
+                    input_field.setText(input_text_val)
+                except Exception:
+                    try:
+                        input_field.setText('')
+                    except Exception:
+                        pass
+                try:
+                    sort_table_by_register()
+                except Exception:
+                    pass
             except Exception:
                 QMessageBox.warning(widget, _lbl('file_load_from_template'), 'Fehler beim Laden')
 
         def _save_action():
             try:
-                save_to_file()
-                QMessageBox.information(widget, _lbl('file_save'), 'OK')
+                # use the input_field text as filename; require non-empty
+                try:
+                    name = input_field.text().strip() if input_field is not None else ''
+                except Exception:
+                    name = ''
+
+                if not name:
+                    QMessageBox.warning(widget, _lbl('file_save'), 'Name darf nicht leer sein')
+                    return
+
+                # sanitize filename: allow alnum, space, underscore, hyphen
+                safe = ''.join(c for c in name if c.isalnum() or c in (' ', '_', '-')).strip()
+                if not safe:
+                    QMessageBox.warning(widget, _lbl('file_save'), 'Ungültiger Dateiname')
+                    return
+                safe = safe.replace(' ', '_')
+
+                # confirm with the user
+                fn_display = f"{safe}.json"
+                ans = QMessageBox.question(widget, _lbl('file_save'), f"{_lbl('file_save')} '{fn_display}'?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                if ans != QMessageBox.StandardButton.Yes:
+                    return
+
+                # build payload from current table
+                rows = []
+                for r in range(table.rowCount()):
+                    rows.append({
+                        'Address': _safe_text(r, 0),
+                        'Type': _safe_text(r, 1),
+                        'Unit': _safe_text(r, 2),
+                        'Comment': _safe_text(r, 3),
+                        'Scale': _safe_text(r, 4),
+                        'Functions': _safe_text(r, 5),
+                    })
+
+                payload = {'templates': rows, 'last_used': None, 'input_text': input_field.text() if input_field is not None else ''}
+
+                # write into saved_tables folder inside this extension
+                target_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), 'saved_tables'))
+                os.makedirs(target_dir, exist_ok=True)
+                fn = os.path.join(target_dir, f"{safe}.json")
+
+                # if file exists, ask before overwriting
+                try:
+                    if os.path.exists(fn):
+                        ans_over = QMessageBox.question(widget, _lbl('file_save'), f"Datei '{fn_display}' existiert bereits. Überschreiben?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                        if ans_over != QMessageBox.StandardButton.Yes:
+                            return
+                except Exception:
+                    pass
+
+                try:
+                    with open(fn, 'w', encoding='utf-8') as f:
+                        json.dump(payload, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    QMessageBox.warning(widget, _lbl('file_save'), 'Fehler beim Schreiben der Datei')
+                    return
+
+                # also persist current working file as last_Modbus_Template
+                try:
+                    save_to_file()
+                except Exception:
+                    pass
+
+                QMessageBox.information(widget, _lbl('file_save'), f"Gespeichert: {fn}")
             except Exception:
                 QMessageBox.warning(widget, _lbl('file_save'), 'Fehler')
 
         def _list_saved_tables():
-            if not os.path.exists(data_path):
+            # list all saved JSON templates in the Data/saved_tables folder and allow selecting one to load
+            data_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), 'saved_tables'))
+            if not os.path.isdir(data_dir):
                 QMessageBox.information(widget, _lbl('file_saved_tables'), 'Keine')
                 return
+
+            files = [f for f in os.listdir(data_dir) if f.lower().endswith('.json')]
+
+            if not files:
+                QMessageBox.information(widget, _lbl('file_saved_tables'), 'Keine')
+                return
+
+            # build display list and map to full paths
+            choices = []
+            path_map = {}
+            for fn in sorted(files):
+                p = os.path.join(data_dir, fn)
+                label = os.path.splitext(fn)[0]
+                try:
+                    with open(p, 'r', encoding='utf-8') as fh:
+                        jd = json.load(fh)
+                    it = jd.get('input_text') or ''
+                    if isinstance(it, str) and it.strip():
+                        label = f"{label} — {it.strip()}"
+                except Exception:
+                    pass
+                choices.append(label)
+                path_map[label] = p
+
+            # ask user to pick one
             try:
-                with open(data_path, 'r', encoding='utf-8') as f:
-                    d = json.load(f)
-                templates = d.get('templates') or []
-                if not templates:
-                    QMessageBox.information(widget, _lbl('file_saved_tables'), 'Keine')
+                sel, ok = QInputDialog.getItem(widget, _lbl('file_saved_tables'), _lbl('file_saved_tables'), choices, 0, False)
+                if not ok or not sel:
                     return
-                # show simple list with indices and Name
-                lines = []
+                sel_path = path_map.get(sel)
+                if not sel_path:
+                    return
+
+                # ask whether to clear current table first
+                try:
+                    msg = QMessageBox(widget)
+                    msg.setWindowTitle(_lbl('file_load_from_template'))
+                    msg.setText('Aktuelle Tabelle löschen?')
+                    btn_continue = msg.addButton('Weiter', QMessageBox.ButtonRole.AcceptRole)
+                    btn_cancel = msg.addButton('Abbrechen', QMessageBox.ButtonRole.RejectRole)
+                    msg.exec()
+                    if msg.clickedButton() != btn_continue:
+                        return
+                except Exception:
+                    # fallback to simple question
+                    ans = QMessageBox.question(widget, _lbl('file_load_from_template'), 'Aktuelle Tabelle löschen?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                    if ans != QMessageBox.StandardButton.Yes:
+                        return
+
+                # load selected file and populate table (after clearing)
+                with open(sel_path, 'r', encoding='utf-8') as fh:
+                    d = json.load(fh)
+
+                # support both 'templates' and exported 'device' files
+                templates = d.get('templates') or []
+                if not templates and isinstance(d, dict) and d.get('device'):
+                    dev = d.get('device') or {}
+                    rx = dev.get('RX') or dev.get('rx') or []
+                    tx = dev.get('TX') or dev.get('tx') or []
+
+                    tx_map = {}
+                    try:
+                        for t in tx:
+                            if not isinstance(t, dict):
+                                continue
+                            try:
+                                func = int(t.get('function', t.get('Function', 3)))
+                            except Exception:
+                                func = 3
+                            start = t.get('start')
+                            length = t.get('length', 1)
+                            try:
+                                if start is None:
+                                    continue
+                                if isinstance(start, str) and str(start).lower().startswith('0x'):
+                                    start_i = int(str(start), 16)
+                                else:
+                                    start_i = int(str(start))
+                                length_i = int(str(length))
+                            except Exception:
+                                continue
+                            for addr in range(start_i, start_i + max(1, length_i)):
+                                tx_map[addr] = func
+                    except Exception:
+                        tx_map = {}
+
+                    norm = []
+                    for e in rx:
+                        try:
+                            if not isinstance(e, dict):
+                                continue
+                            reg = e.get('register', '')
+                            func_val = ''
+                            reg_int = None
+                            try:
+                                if isinstance(reg, str) and str(reg).lower().startswith('0x'):
+                                    reg_int = int(reg, 16)
+                                else:
+                                    reg_int = int(reg)
+                            except Exception:
+                                reg_int = None
+
+                            if reg_int is not None and reg_int in tx_map:
+                                func_val = str(tx_map.get(reg_int, ''))
+                            else:
+                                func_val = str(e.get('select', '') or '')
+
+                            norm.append({
+                                'Address': reg,
+                                'Type': e.get('format', ''),
+                                'Unit': e.get('unit', ''),
+                                'Comment': e.get('description', ''),
+                                'Scale': e.get('factor', ''),
+                                'Functions': func_val,
+                            })
+                        except Exception:
+                            continue
+                    templates = norm
+
+                table.blockSignals(True)
+                try:
+                    table.setRowCount(0)
+                except Exception:
+                    pass
+                # clear input field before loading
+                try:
+                    input_field.setText('')
+                except Exception:
+                    try:
+                        input_field.clear()
+                    except Exception:
+                        pass
                 for i, tpl in enumerate(templates):
-                    lines.append(f"{i+1}. {tpl.get('Name','')}")
-                QMessageBox.information(widget, _lbl('file_saved_tables'), '\n'.join(lines))
+                    table.insertRow(i)
+                    table.setItem(i, 0, QTableWidgetItem(str(tpl.get('Address', '') or '')))
+                    table.setItem(i, 1, QTableWidgetItem(str(tpl.get('Type', '') or '')))
+                    table.setItem(i, 2, QTableWidgetItem(str(tpl.get('Unit', '') or '')))
+                    descr = tpl.get('Comment', '') or tpl.get('Name', '')
+                    table.setItem(i, 3, QTableWidgetItem(str(descr or '')))
+                    table.setItem(i, 4, QTableWidgetItem(str(tpl.get('Scale', '') or '')))
+                    table.setItem(i, 5, QTableWidgetItem(str(tpl.get('Functions', '') or tpl.get('select', '') or '')))
+                table.blockSignals(False)
+                try:
+                    sort_table_by_register()
+                except Exception:
+                    pass
+                # restore input field text from file
+                try:
+                    # prefer explicit input_text in file, fall back to device Type if present
+                    input_text_val = ''
+                    try:
+                        input_text_val = str(d.get('input_text', '') or '')
+                    except Exception:
+                        input_text_val = ''
+                    if not input_text_val and isinstance(d, dict) and d.get('device'):
+                        try:
+                            input_text_val = str((d.get('device') or {}).get('Type', '') or '')
+                        except Exception:
+                            input_text_val = ''
+                    input_field.setText(input_text_val)
+                except Exception:
+                    try:
+                        input_field.setText('')
+                    except Exception:
+                        pass
+                save_to_file()
             except Exception:
-                QMessageBox.warning(widget, _lbl('file_saved_tables'), 'Fehler')
+                QMessageBox.warning(widget, _lbl('file_saved_tables'), 'Fehler beim Laden')
 
         def _delete_saved_tables():
-            if not os.path.exists(data_path):
+            # let the user select one or more saved tables from Data/saved_tables to delete
+            data_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), 'saved_tables'))
+            if not os.path.isdir(data_dir):
                 QMessageBox.information(widget, _lbl('file_delete_saved'), 'Keine')
                 return
-            ok = QMessageBox.question(widget, _lbl('file_delete_saved'), 'Alle gespeicherten Tabellen löschen?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            if ok == QMessageBox.StandardButton.Yes:
+
+            files = [f for f in sorted(os.listdir(data_dir)) if f.lower().endswith('.json')]
+            if not files:
+                QMessageBox.information(widget, _lbl('file_delete_saved'), 'Keine')
+                return
+
+            # prepare display labels and mapping to full paths
+            choices = []
+            path_map = {}
+            for fn in files:
+                p = os.path.join(data_dir, fn)
+                label = os.path.splitext(fn)[0]
                 try:
-                    with open(data_path, 'w', encoding='utf-8') as f:
-                        json.dump({'templates': [], 'last_used': None, 'input_text': ''}, f, ensure_ascii=False, indent=2)
-                    QMessageBox.information(widget, _lbl('file_delete_saved'), 'OK')
+                    with open(p, 'r', encoding='utf-8') as fh:
+                        jd = json.load(fh)
+                    it = jd.get('input_text') or ''
+                    if isinstance(it, str) and it.strip():
+                        label = f"{label} — {it.strip()}"
                 except Exception:
-                    QMessageBox.warning(widget, _lbl('file_delete_saved'), 'Fehler')
+                    pass
+                choices.append(label)
+                path_map[label] = p
+
+            try:
+                dlg = QDialog(widget)
+                dlg.setWindowTitle(_lbl('file_delete_saved'))
+                dlg_layout = QVBoxLayout(dlg)
+                dlg_layout.setContentsMargins(8, 8, 8, 8)
+                dlg_layout.addWidget(QLabel(_lbl('file_delete_saved')))
+
+                lw = QListWidget(dlg)
+                lw.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+                for label in choices:
+                    QListWidgetItem(label, lw)
+                dlg_layout.addWidget(lw)
+
+                btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+                dlg_layout.addWidget(btns)
+                btns.accepted.connect(dlg.accept)
+                btns.rejected.connect(dlg.reject)
+
+                if dlg.exec() != QDialog.DialogCode.Accepted:
+                    return
+
+                sel_items = lw.selectedItems()
+                if not sel_items:
+                    return
+
+                basenames = [it.text() for it in sel_items]
+                confirm_msg = 'Folgende Dateien löschen?\n' + '\n'.join(basenames)
+                ans = QMessageBox.question(widget, _lbl('file_delete_saved'), confirm_msg, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                if ans != QMessageBox.StandardButton.Yes:
+                    return
+
+                deleted = 0
+                for it in sel_items:
+                    p = path_map.get(it.text())
+                    if not p:
+                        continue
+                    try:
+                        os.remove(p)
+                        deleted += 1
+                    except Exception:
+                        pass
+
+                QMessageBox.information(widget, _lbl('file_delete_saved'), f"Löschen abgeschlossen: {deleted} Dateien gelöscht")
+            except Exception:
+                QMessageBox.warning(widget, _lbl('file_delete_saved'), 'Fehler')
 
         # wire actions (if they exist)
         try:
@@ -656,7 +1196,28 @@ def get_widget(translation=None, *args, **kwargs):
                         input_text = ''
                     # metadata row (first row) documents input_field above the table
                     writer.writerow(["#input", input_text])
-                    writer.writerow([_lbl('col_address'), _lbl('col_type'), _lbl('col_unit'), _lbl('col_comment'), _lbl('col_scale'), _lbl('col_modbus_functions')])
+
+                    # write header row using the table's visible header labels so CSV matches UI
+                    headers_out = []
+                    try:
+                        for c in range(table.columnCount()):
+                            hh = table.horizontalHeaderItem(c)
+                            if hh is not None and hh.text() is not None:
+                                headers_out.append(str(hh.text()))
+                            else:
+                                # fallback to localized label if header item missing
+                                fallback_keys = [
+                                    'col_register', 'col_datentyp', 'col_einheit',
+                                    'col_beschreibung', 'col_faktor', 'col_modbus_funktionen'
+                                ]
+                                fk = fallback_keys[c] if c < len(fallback_keys) else ''
+                                headers_out.append(_lbl(fk))
+                    except Exception:
+                        # ultimate fallback to localized labels
+                        headers_out = [_lbl('col_register'), _lbl('col_datentyp'), _lbl('col_einheit'), _lbl('col_beschreibung'), _lbl('col_faktor'), _lbl('col_modbus_funktionen')]
+
+                    writer.writerow(headers_out)
+
                     for r in range(table.rowCount()):
                         row_vals = [_safe_text(r, c) for c in range(table.columnCount())]
                         writer.writerow(row_vals)
@@ -844,9 +1405,25 @@ def get_widget(translation=None, *args, **kwargs):
                     # remove metadata row
                     rows = rows[1:]
 
-                # if next row is header labels, skip it
-                expected = [_lbl('col_address'), _lbl('col_type'), _lbl('col_unit'), _lbl('col_comment'), _lbl('col_scale'), _lbl('col_modbus_functions')]
-                if rows and rows[0] == expected:
+                # if next row is header labels, skip it — compare to the table's visible headers
+                try:
+                    expected = []
+                    for c in range(table.columnCount()):
+                        hh = table.horizontalHeaderItem(c)
+                        if hh is not None and hh.text() is not None:
+                            expected.append(str(hh.text()))
+                        else:
+                            # fallback localized keys matching the table's header order
+                            fallback_keys = [
+                                'col_register', 'col_datentyp', 'col_einheit',
+                                'col_beschreibung', 'col_faktor', 'col_modbus_funktionen'
+                            ]
+                            fk = fallback_keys[c] if c < len(fallback_keys) else ''
+                            expected.append(_lbl(fk))
+                except Exception:
+                    expected = []
+
+                if rows and expected and rows[0] == expected:
                     rows = rows[1:]
 
                 # populate table 1:1 with rows (preserve order); pad missing columns
@@ -879,7 +1456,7 @@ def get_widget(translation=None, *args, **kwargs):
                     rows_source = d.get('templates') or []
                 elif isinstance(d, dict) and d.get('device') and isinstance(d.get('device'), dict):
                     # device export: prefer RX list, but derive Modbus function from TX ranges
-                    dev = d.get('device')
+                    dev = d.get('device') or {}
                     rx = dev.get('RX') or dev.get('rx') or []
                     tx = dev.get('TX') or dev.get('tx') or []
 
@@ -898,11 +1475,13 @@ def get_widget(translation=None, *args, **kwargs):
                             start = t.get('start')
                             length = t.get('length', 1)
                             try:
+                                if start is None:
+                                    continue
                                 if isinstance(start, str) and str(start).lower().startswith('0x'):
-                                    start_i = int(start, 16)
+                                    start_i = int(str(start), 16)
                                 else:
-                                    start_i = int(start)
-                                length_i = int(length)
+                                    start_i = int(str(start))
+                                length_i = int(str(length))
                             except Exception:
                                 continue
                             for addr in range(start_i, start_i + max(1, length_i)):

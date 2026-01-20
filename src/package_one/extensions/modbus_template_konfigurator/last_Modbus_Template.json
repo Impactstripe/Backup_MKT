@@ -1,0 +1,126 @@
+{
+  "templates": [
+    {
+      "Address": "4352",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 V",
+      "Comment": "Istspannung L1",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4354",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 V",
+      "Comment": "Istspannung L2",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4356",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 V",
+      "Comment": "Istspannung L3",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4608",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 A",
+      "Comment": "Iststrom L1",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4610",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 A",
+      "Comment": "Iststrom L2",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4612",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 A",
+      "Comment": "Iststrom L3",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4908",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 VAR",
+      "Comment": "Blindleistung L3",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4912",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 VA",
+      "Comment": "Scheinleistung L1",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4914",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 VA",
+      "Comment": "Scheinleistung L2",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "4916",
+      "Type": "FLOAT32 HL",
+      "Unit": "1 VA",
+      "Comment": "Scheinleistung L3",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "8192",
+      "Type": "FLOAT64 HL",
+      "Unit": "1 Wh",
+      "Comment": "Wirkenergie kpl., importiert",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "8196",
+      "Type": "FLOAT64 HL",
+      "Unit": "1 Wh",
+      "Comment": "Wirkenergie kpl., exportiert",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "8208",
+      "Type": "FLOAT64 HL",
+      "Unit": "1 Wh",
+      "Comment": "Wirkenergie L1, importiert",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "8212",
+      "Type": "FLOAT64 HL",
+      "Unit": "1 Wh",
+      "Comment": "Wirkenergie L2, importiert",
+      "Scale": "",
+      "Functions": "3"
+    },
+    {
+      "Address": "8216",
+      "Type": "FLOAT64 HL",
+      "Unit": "1 Wh",
+      "Comment": "Wirkenergie L3, importiert",
+      "Scale": "",
+      "Functions": "3"
+    }
+  ],
+  "last_used": null,
+  "input_text": "PQ_PLUS_UMD_97"
+}

@@ -4,8 +4,144 @@ import json
 from PyQt6.QtWidgets import (
 	QApplication, QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QScrollArea, QSizePolicy
 )
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
-from . import main_funktions
+import importlib
+
+# --- begin utils merged from package_one.utils ---
+_settings_path = os.path.join(os.path.dirname(__file__), 'Data', 'settings.json')
+
+def _settings_read():
+	try:
+		with open(_settings_path, 'r', encoding='utf-8') as f:
+			return json.load(f)
+	except Exception:
+		return {}
+
+def _settings_write(data):
+	try:
+		with open(_settings_path, 'w', encoding='utf-8') as f:
+			json.dump(data, f, ensure_ascii=False, indent=4)
+	except Exception:
+		pass
+
+def get_language(default='de'):
+	d = _settings_read()
+	return d.get('language', default)
+
+
+def get_settings_default_language():
+	d = _settings_read()
+	return d.get('default_language')
+
+
+def get_available_languages():
+	names_path = os.path.join(os.path.dirname(__file__), 'Data', 'names.json')
+	try:
+		with open(names_path, 'r', encoding='utf-8') as f:
+			names = json.load(f)
+	except Exception:
+		names = {}
+
+	codes = []
+	wt = names.get('window_title')
+	if isinstance(wt, dict):
+		for k in wt.keys():
+			if k not in codes:
+				codes.append(k)
+
+	def _looks_like_lang_map(d):
+		if not isinstance(d, dict) or not d:
+			return False
+		for k, v in d.items():
+			if not (isinstance(k, str) and 1 <= len(k) <= 3):
+				return False
+			if not isinstance(v, str):
+				return False
+		return True
+
+	for key, val in names.items():
+		if key == 'window_title':
+			continue
+		if isinstance(val, dict) and _looks_like_lang_map(val):
+			for k in val.keys():
+				if k not in codes:
+					codes.append(k)
+
+	settings_default = get_settings_default_language()
+	if settings_default and settings_default in codes:
+		codes = [settings_default] + [c for c in codes if c != settings_default]
+
+	if not codes:
+		codes = ['de']
+	return codes
+
+def set_language(lang_code):
+	d = _settings_read()
+	d['language'] = lang_code
+	_settings_write(d)
+
+def clear_content(content_layout):
+	while content_layout.count():
+		item = content_layout.takeAt(0)
+		widget = item.widget()
+		if widget is not None:
+			widget.deleteLater()
+
+
+def update_content(idx, content_layout, *args, **kwargs):
+	settings_path = kwargs.get('settings_path', None)
+	button_refs = kwargs.get('button_refs', None)
+	button5 = kwargs.get('button5', None)
+	if len(args) >= 1 and settings_path is None:
+		if len(args) >= 2:
+			settings_path = args[1]
+		if len(args) >= 3:
+			button_refs = args[2]
+		if len(args) >= 4:
+			button5 = args[3]
+
+	clear_content(content_layout)
+	module_map = {
+		0: 'package_one.extensions.einstellung.ui_einstellung',
+		1: 'package_one.extensions.modbus_template_konfigurator.ui_modbus_template',
+		2: 'package_one.extensions.search_utility.ui_search',
+	}
+	module_name = module_map.get(idx)
+	if module_name:
+		ui_module = None
+		try:
+			ui_module = importlib.import_module(module_name)
+		except ModuleNotFoundError:
+			prefixes = []
+			if __package__:
+				prefixes.append(__package__ + '.')
+			prefixes.extend(['src.package_one.', 'package_one.'])
+			for p in prefixes:
+				try:
+					ui_module = importlib.import_module(p + module_name)
+					break
+				except Exception:
+					continue
+			if ui_module is None:
+				raise
+		top_widgets = kwargs.get('top_widgets', None)
+		try:
+			if top_widgets is not None:
+				widget = ui_module.get_widget(None, top_widgets=top_widgets)
+			else:
+				widget = ui_module.get_widget(None)
+		except TypeError:
+			if top_widgets is not None:
+				widget = ui_module.get_widget(top_widgets=top_widgets)
+			else:
+				widget = ui_module.get_widget()
+		content_layout.addWidget(widget)
+	else:
+		label = QLabel('Kein UI-Modul gefunden!')
+		content_layout.addWidget(label)
+
+# --- end utils merged ---
 
 def main():
 	settings_path = os.path.join(os.path.dirname(__file__), 'Data', 'settings.json')
@@ -37,10 +173,10 @@ def main():
 		wt = _names.get('window_title')
 		if isinstance(wt, dict):
 			# prefer a default set in settings.json, otherwise fall back to derived languages
-			settings_default = main_funktions.get_settings_default_language()
-			languages = main_funktions.get_available_languages()
+			settings_default = get_settings_default_language()
+			languages = get_available_languages()
 			fallback = _names.get('default_language') or (languages[0] if languages else 'de')
-			lang = main_funktions.get_language(default=(settings_default or fallback))
+			lang = get_language(default=(settings_default or fallback))
 			window_title = wt.get(lang) or next(iter(wt.values()))
 		else:
 			window_title = wt or 'Toolbox'
@@ -60,10 +196,10 @@ def main():
 	# Hauptmenü-Button oben (label from names.json)
 	def _lbl(key):
 		# use preloaded names and persisted language setting
-		settings_default = main_funktions.get_settings_default_language()
-		languages = main_funktions.get_available_languages()
+		settings_default = get_settings_default_language()
+		languages = get_available_languages()
 		fallback = _names.get('default_language') or (languages[0] if languages else 'de')
-		lang_local = main_funktions.get_language(default=(settings_default or fallback))
+		lang_local = get_language(default=(settings_default or fallback))
 		# labels may be stored directly at root (e.g. "menu_main": {..}) or under "labels"
 		v = _names.get(key)
 		if v is None:
@@ -77,13 +213,44 @@ def main():
 		if isinstance(v, dict):
 			return v.get(lang_local) or next(iter(v.values()))
 		return v or key
+	# logo above main menu (if available) - scale to fit sidebar width and height, keep aspect ratio
+	try:
+		logo_label = None
+		logo_path = os.path.join(os.path.dirname(__file__), 'assets', 'MC_LOGO.jpg')
+		if os.path.exists(logo_path):
+			pix = QPixmap(logo_path)
+			if not pix.isNull():
+				# determine available width in sidebar (use 90% of configured max)
+				try:
+					avail_w = max(64, int(button_widget.maximumWidth() * 0.9))
+				except Exception:
+					avail_w = 140
+				# limit height to a reasonable maximum so the logo is visible
+				avail_h = 120
+				# scale pixmap keeping aspect ratio and using smooth transform
+				scaled = pix.scaled(avail_w, avail_h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+				if not scaled.isNull():
+					logo_label = QLabel()
+					logo_label.setPixmap(scaled)
+					logo_label.setMaximumSize(avail_w, avail_h)
+					logo_label.setContentsMargins(0, 6, 0, 6)
+					logo_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+		# only add the label if it was successfully created and contains a pixmap
+		if logo_label is not None:
+			button_layout.addWidget(logo_label)
+		else:
+			# ensure layout spacing stays consistent even without logo
+			button_layout.addSpacing(6)
+	except Exception:
+		pass
+
 	mainmenu_btn = QPushButton(_lbl('menu_main'))
 	mainmenu_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 	# styling moved to main.qss
 	mainmenu_btn.setObjectName('mainmenu_btn')
 	button_layout.addWidget(mainmenu_btn)
 	def show_mainmenu():
-		main_funktions.clear_content(content_layout)
+		clear_content(content_layout)
 		prompt = QLabel(_lbl('choose_prompt'))
 		prompt.setObjectName('prompt_label')
 		content_layout.addWidget(prompt)
@@ -151,12 +318,12 @@ def main():
 	show_mainmenu()
 
 	for idx, btn in enumerate(button_refs):
-		btn.clicked.connect(lambda checked, i=idx: main_funktions.update_content(i, content_layout, None, settings_path, button_refs, button5, top_widgets=top_widgets))
-	button5.clicked.connect(lambda checked: main_funktions.update_content(0, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
+		btn.clicked.connect(lambda checked, i=idx: update_content(i, content_layout, None, settings_path, button_refs, button5, top_widgets=top_widgets))
+	button5.clicked.connect(lambda checked: update_content(0, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
 	# connect Modbus button to the new extension (index 1)
 	try:
-		modbus_btn.clicked.connect(lambda checked: main_funktions.update_content(1, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
-		search_btn.clicked.connect(lambda checked: main_funktions.update_content(2, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
+		modbus_btn.clicked.connect(lambda checked: update_content(1, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
+		search_btn.clicked.connect(lambda checked: update_content(2, content_layout, None , settings_path, button_refs, button5, top_widgets=top_widgets))
 	except NameError:
 		# modbus_btn may not exist in older checkouts
 		pass

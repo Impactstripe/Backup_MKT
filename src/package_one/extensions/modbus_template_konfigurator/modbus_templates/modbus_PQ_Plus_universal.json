@@ -1,0 +1,56 @@
+{
+	"device":
+	{
+		"Address": 0,
+		"AddressBase": 0,
+		"Type": "PQ_PLUS_universal",
+		"TX":
+		[
+			{"function": 3, "start": 4352, "length": 8},
+			{"function": 3, "start": 4608, "length": 8},
+			{"function": 3, "start": 4876, "length": 8},
+			{"function": 3, "start": 4884, "length": 6},
+			{"function": 3, "start": 4896, "length": 8},
+			{"function": 3, "start": 4904, "length": 8},
+			{"function": 3, "start": 4912, "length": 8},
+			{"function": 3, "start": 8192, "length": 8},
+			{"function": 3, "start": 8208, "length": 12}
+		],
+		"RX":
+		[
+			{"register": 4352, "format": "FLOAT32 HL", "unit": "1 V", "description": "Istspannung V 1", "select":""},
+			{"register": 4354, "format": "FLOAT32 HL", "unit": "1 V", "description": "Istspannung V 2", "select":""},
+			{"register": 4356, "format": "FLOAT32 HL", "unit": "1 V", "description": "Istspannung V 3", "select":""},
+			{"register": 4358, "format": "FLOAT32 HL", "unit": "1 V", "description": "Istspannung V N", "select":""},
+			{"register": 4608, "format": "FLOAT32 HL", "unit": "1 A", "description": "Iststrom I 1", "select":""},
+			{"register": 4610, "format": "FLOAT32 HL", "unit": "1 A", "description": "Iststrom I 2", "select":""},
+			{"register": 4612, "format": "FLOAT32 HL", "unit": "1 A", "description": "Iststrom I 3", "select":""},
+			{"register": 4614, "format": "FLOAT32 HL", "unit": "1 A", "description": "Iststrom I 4", "select":""},
+			{"register": 4876, "format": "FLOAT32 HL", "unit": "cos", "description": "Cosinus 1", "select":""},
+			{"register": 4878, "format": "FLOAT32 HL", "unit": "cos", "description": "Cosinus 2", "select":""},
+			{"register": 4880, "format": "FLOAT32 HL", "unit": "cos", "description": "Cosinus 3", "select":""},
+			{"register": 4882, "format": "FLOAT32 HL", "unit": "cos", "description": "Cosinus N", "select":""},
+			{"register": 4884, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung kpl.", "select":""},
+			{"register": 4886, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung kpl.", "select":""},
+			{"register": 4888, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung kpl.", "select":""},
+			{"register": 4896, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung  P 1", "select":""},
+			{"register": 4898, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung  P 2", "select":""},
+			{"register": 4900, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung  P 3", "select":""},
+			{"register": 4902, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung  P N", "select":""},
+			{"register": 4904, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung Q 1", "select":""},
+			{"register": 4906, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung Q 2", "select":""},
+			{"register": 4908, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung Q 3", "select":""},
+			{"register": 4910, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung Q N", "select":""},
+			{"register": 4912, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung S 1", "select":""},
+			{"register": 4914, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung S 2", "select":""},
+			{"register": 4916, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung S 3", "select":""},
+			{"register": 4918, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung S N", "select":""},
+
+			{"register": 8192, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie kpl., importiert", "select":""},
+			{"register": 8196, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie kpl., exportiert", "select":""},
+			{"register": 8208, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie L1, importiert", "select":""},
+			{"register": 8212, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie L2, importiert", "select":""},
+			{"register": 8216, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie L3, importiert", "select":""}
+		]
+	}
+}

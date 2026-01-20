@@ -1,0 +1,46 @@
+{
+	"device":
+	{
+		"Address": 0,
+		"AddressBase": 0,
+		"Type": "PQ_PLUS_UMD_97",
+		"TX":
+		[
+			{"function": 3, "start": 4352, "length": 6},
+			{"function": 3, "start": 4608, "length": 6},
+			{"function": 3, "start": 4884, "length": 6},
+			{"function": 3, "start": 4896, "length": 6},
+			{"function": 3, "start": 4904, "length": 6},
+			{"function": 3, "start": 4912, "length": 6},
+			{"function": 3, "start": 8192, "length": 8},
+			{"function": 3, "start": 8208, "length": 12}
+		],
+		"RX":
+		[
+			{"register": 4352, "format": "FLOAT32 HL", "unit": "1 V", "description": "Istspannung L1", "select":""},
+			{"register": 4354, "format": "FLOAT32 HL", "unit": "1 V", "description": "Istspannung L2", "select":""},
+			{"register": 4356, "format": "FLOAT32 HL", "unit": "1 V", "description": "Istspannung L3", "select":""},
+			{"register": 4608, "format": "FLOAT32 HL", "unit": "1 A", "description": "Iststrom L1", "select":""},
+			{"register": 4610, "format": "FLOAT32 HL", "unit": "1 A", "description": "Iststrom L2", "select":""},
+			{"register": 4612, "format": "FLOAT32 HL", "unit": "1 A", "description": "Iststrom L3", "select":""},
+			{"register": 4884, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung kpl.", "select":""},
+			{"register": 4886, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung kpl.", "select":""},
+			{"register": 4888, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung kpl.", "select":""},
+			{"register": 4896, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung  L1", "select":""},
+			{"register": 4898, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung  L2", "select":""},
+			{"register": 4900, "format": "FLOAT32 HL", "unit": "1 W", "description": "Wirkleistung  L3", "select":""},
+			{"register": 4904, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung L1", "select":""},
+			{"register": 4906, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung L2", "select":""},
+			{"register": 4908, "format": "FLOAT32 HL", "unit": "1 VAR", "description": "Blindleistung L3", "select":""},
+			{"register": 4912, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung L1", "select":""},
+			{"register": 4914, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung L2", "select":""},
+			{"register": 4916, "format": "FLOAT32 HL", "unit": "1 VA", "description": "Scheinleistung L3", "select":""},
+
+			{"register": 8192, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie kpl., importiert", "select":""},
+			{"register": 8196, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie kpl., exportiert", "select":""},
+			{"register": 8208, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie L1, importiert", "select":""},
+			{"register": 8212, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie L2, importiert", "select":""},
+			{"register": 8216, "format": "FLOAT64 HL", "unit": "1 Wh", "description": "Wirkenergie L3, importiert", "select":""}
+		]
+	}
+}

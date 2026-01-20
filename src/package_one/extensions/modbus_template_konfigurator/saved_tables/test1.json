@@ -1,0 +1,46 @@
+{
+  "templates": [
+    {
+      "Address": "1",
+      "Type": "UINT8",
+      "Unit": "",
+      "Comment": "",
+      "Scale": "1.0",
+      "Functions": "1"
+    },
+    {
+      "Address": "2",
+      "Type": "UINT8",
+      "Unit": "",
+      "Comment": "",
+      "Scale": "2.0",
+      "Functions": "1"
+    },
+    {
+      "Address": "3",
+      "Type": "UINT8",
+      "Unit": "",
+      "Comment": "",
+      "Scale": "3.0",
+      "Functions": "1"
+    },
+    {
+      "Address": "4",
+      "Type": "UINT8",
+      "Unit": "",
+      "Comment": "",
+      "Scale": "4.0",
+      "Functions": "1"
+    },
+    {
+      "Address": "5",
+      "Type": "INT8",
+      "Unit": "",
+      "Comment": "",
+      "Scale": "5.0",
+      "Functions": "1"
+    }
+  ],
+  "last_used": null,
+  "input_text": "test1"
+}

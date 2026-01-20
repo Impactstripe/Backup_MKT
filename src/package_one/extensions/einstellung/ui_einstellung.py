@@ -5,7 +5,7 @@ from . import logic_einstellung
 from PyQt6.QtWidgets import QApplication
 from typing import cast
 from PyQt6.QtCore import QObject, Qt
-from package_one.main_funktions import get_language, get_settings_default_language, get_available_languages
+from package_one.main import get_language, get_settings_default_language, get_available_languages
 
 
 def _read_names():
@@ -91,11 +91,11 @@ def get_widget(translation=None, *args, **kwargs):
     def on_change(i):
         code = combo.itemData(i)
         # persist language in settings
-        try:
-            from package_one.main_funktions import set_language
-            set_language(code)
-        except Exception:
-            pass
+            try:
+                from package_one.main import set_language
+                set_language(code)
+            except Exception:
+                pass
         # update main window titles and widgets
         try:
             n = _read_names()

@@ -1,34 +1,32 @@
 QWidget {
-    background-color: #181a20;
-    color: #f8f8f2;
+    background-color: #ffffff;
+    color: #000000;
     font-family: 'Segoe UI', Arial, sans-serif;
 }
 
 QScrollArea {
-    background: #23272e;
-    border: 2px solid #44475a;
-    border-radius: 10px;
-    background: linear-gradient(90deg, #0A2B63 0%, rgba(79, 189, 197, 0.95) 100%);
+    background: #ffffff;
+    border: 1px solid #dddddd;
+    border-radius: 6px;
 }
 
 QPushButton {
-    color: #ffffff;
-    border: none;
+    color: #000000;
+    border: 1px solid #cccccc;
     padding: 6px 10px;
     margin: 4px 0;
     border-radius: 6px;
-    background: linear-gradient(90deg, #0A2B63 0%, rgba(79,189,197,0.95) 100%);
+    background: #f2f2f2;
 }
 QPushButton:hover {
-    opacity: 0.95;
+    background: #e6e6e6;
 }
 QPushButton:pressed {
-    /* Qt stylesheet doesn't support transform; use a subtle color change instead */
-    opacity: 0.9;
+    background: #dcdcdc;
 }
 
 QLabel {
-    color: #f8f8f2;
+    color: #000000;
 }
 
 /* App-specific overrides */
@@ -38,14 +36,14 @@ QWidget#appWindow {
 }
 
 QWidget#sidePanel {
-    background-color: rgba(0,0,0,153);
+    background-color: #ffffff;
 }
 
 QWidget#contentArea {
-    background-color: rgba(0,0,0,153);
+    background-color: #ffffff;
 }
 
-/* Ensure labels inside dark areas are visible */
+/* Ensure labels inside areas are visible */
 QWidget#sidePanel QLabel, QWidget#contentArea QLabel {
-    color: white;
+    color: #000000;
 }
