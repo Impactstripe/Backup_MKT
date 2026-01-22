@@ -91,11 +91,11 @@ def get_widget(translation=None, *args, **kwargs):
     def on_change(i):
         code = combo.itemData(i)
         # persist language in settings
-            try:
-                from package_one.main import set_language
-                set_language(code)
-            except Exception:
-                pass
+        try:
+            from package_one.main import set_language
+            set_language(code)
+        except Exception:
+            pass
         # update main window titles and widgets
         try:
             n = _read_names()
